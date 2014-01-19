@@ -1,9 +1,0 @@
-package calc
-
-import (
-	"testing"
-)
-
-func TestHandleCalculate(t *testing.T) {
-	println("x")
-}
