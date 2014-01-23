@@ -1,13 +1,19 @@
 package msg
 
 import (
+	"fmt"
 	"log"
 	"encoding/gob"
 	"encoding/base64"
 	"bytes"
+	"oc/util"
+	"crypto/ecdsa"
+	"crypto/rand"
+	"crypto/elliptic"
 )
-// For simplicity, all fields are string or []byte
+var _ = fmt.Printf
 
+// For simplicity, all fields are string or []byte
 type OcReq struct {
 	NodeId string
 	Nonce string
@@ -81,5 +87,28 @@ func decode(b64 string, d interface{}) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// functions related to node ID/signing; may want these in a different package
+func MakeNodeId(destPath string) error {
+	b := make([]byte, 256)
+	_, err := rand.Read(b)
+	if err != nil {
+		return err
+	}
+	curve := elliptic.P256()
+	priv, err := ecdsa.GenerateKey(curve, bytes.NewReader(b))
+	if err != nil {
+		return err
+	}
+	h := fmt.Sprintf("%x\n", priv.D)
+	if destPath == "" { destPath = "nodeid-priv" }
+	err = util.StoreAppData(destPath, []byte(h), 0600)
+	if err != nil {
+		return err
+	}
+	pub := elliptic.Marshal(curve, priv.PublicKey.X, priv.PublicKey.Y)
+	println(fmt.Sprintf("%v\n", pub))
 	return nil
 }
