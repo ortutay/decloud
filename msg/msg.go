@@ -10,6 +10,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/elliptic"
+	"math/big"
 )
 var _ = fmt.Printf
 
@@ -91,24 +92,48 @@ func decode(b64 string, d interface{}) error {
 }
 
 // functions related to node ID/signing; may want these in a different package
-func MakeNodeId(destPath string) error {
+const (
+	PRIVATE_KEY_FILENAME = "nodeid-priv"
+)
+
+func MakeNodeId(filename string) error {
+	if filename == "" { filename = PRIVATE_KEY_FILENAME }
 	b := make([]byte, 256)
 	_, err := rand.Read(b)
-	if err != nil {
-		return err
-	}
+	if err != nil { return err }
+
 	curve := elliptic.P256()
 	priv, err := ecdsa.GenerateKey(curve, bytes.NewReader(b))
-	if err != nil {
-		return err
-	}
-	h := fmt.Sprintf("%x\n", priv.D)
-	if destPath == "" { destPath = "nodeid-priv" }
-	err = util.StoreAppData(destPath, []byte(h), 0600)
-	if err != nil {
-		return err
-	}
-	pub := elliptic.Marshal(curve, priv.PublicKey.X, priv.PublicKey.Y)
-	println(fmt.Sprintf("%v\n", pub))
+	if err != nil { return err }
+
+	err = StoreNodePrivateKey(filename, priv)
+	if err != nil { return err }
+
 	return nil
+}
+
+func StoreNodePrivateKey(filename string, priv *ecdsa.PrivateKey)  error {
+	d := fmt.Sprintf("%x\n", priv.D)
+	err := util.StoreAppData(filename, []byte(d), 0600)
+	if err != nil { return err }
+	return nil
+}
+
+func GetNodePrivateKey(filename string) (*ecdsa.PrivateKey, error) {
+	if filename == "" { filename = PRIVATE_KEY_FILENAME }
+	file, err := util.GetAppData(filename)
+	if err != nil { return nil, err }
+	var d big.Int
+	fmt.Fscanf(file, "%x\n", &d)
+	curve := elliptic.P256()
+	x, y := curve.ScalarBaseMult(d.Bytes())
+	priv := ecdsa.PrivateKey{
+		PublicKey: ecdsa.PublicKey{
+			Curve: curve,
+			X: x,
+			Y: y,
+		},
+		D: &d,
+	}
+	return &priv, nil
 }

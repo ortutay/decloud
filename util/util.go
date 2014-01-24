@@ -5,25 +5,42 @@ import (
 	"path"
 )
 
+func GetAppData(filename string) (*os.File, error) {
+	filename, err := normalizeFilename(filename)
+	if err != nil { return nil, err }
+
+	file, err := os.Open(filename)
+	if err != nil { return nil, err }
+
+	return file, nil
+}
+
 func StoreAppData(filename string, data []byte, perm os.FileMode) error {
-	if path.IsAbs(filename) {
-	} else {
-		err := makeAppDir()
-		if err != nil { return err }
-		if path.Dir(filename) != "." { panic("TODO implement if needed") }
-		filename = appDir() + "/" + filename
-	}
-
-	f, err := os.Create(filename)
+	filename, err := normalizeFilename(filename)
 	if err != nil { return err }
 
-	err = f.Chmod(perm)
+	file, err := os.Create(filename)
 	if err != nil { return err }
 
-	_, err = f.Write(data)
+	err = file.Chmod(perm)
+	if err != nil { return err }
+
+	_, err = file.Write(data)
 	if err != nil { return err }
 
 	return nil
+}
+
+func normalizeFilename(filename string) (string, error) {
+	if path.IsAbs(filename) {
+		return filename, nil
+	} else {
+		err := makeAppDir()
+		if err != nil { return "", err }
+		if path.Dir(filename) != "." { panic("TODO implement if needed") }
+		filename = appDir() + "/" + filename
+		return filename, nil
+	}
 }
 
 func appDir() string {
