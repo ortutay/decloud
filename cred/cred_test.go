@@ -1,11 +1,14 @@
 package cred
 
 import (
+	"errors"
 	"testing"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"oc/util"
 	"oc/buyer/client"
+	"github.com/conformal/btcjson"
 )
 var _ = fmt.Printf
 
@@ -52,13 +55,14 @@ func TestSignRequest(t *testing.T) {
 			len(ocReq.NodeId), len(ocReq.Sig))
 	}
 
-	ok := ocCred.VerifyOcReqSig(&ocReq)
+	ok, err := VerifyOcReqSig(&ocReq, nil)
+	if err != nil { t.Errorf("%v", err) }
 	if !ok {
 		t.Errorf("sig did not verify")
 	}
 }
 
-func TestInvalidSignatureFails(t *testing.T) {
+func TestInvalidOcSignatureFails(t *testing.T) {
 	ocReq := client.NewCalcReq([]string{"1 2 +"})
 
 	ocCred, err := NewOcCred()
@@ -68,25 +72,121 @@ func TestInvalidSignatureFails(t *testing.T) {
 	if err != nil { t.Errorf("%v", err) }
 
 	originalSig := ocReq.Sig[0]
-
-	ocReq.Sig[0] = originalSig[1:] + "1"
-	if ocCred.VerifyOcReqSig(&ocReq) {
+	ocReq.Sig[0] = originalSig[0:len(originalSig)-2] + "1"
+	if ok, _ := VerifyOcReqSig(&ocReq, nil); ok {
 		t.Errorf("invalid sig %v verified", ocReq.Sig[0])
 	}
 
 	ocReq.Sig[0] = originalSig + "x"
-	if ocCred.VerifyOcReqSig(&ocReq) {
+	if ok, _ := VerifyOcReqSig(&ocReq, nil); ok {
 		t.Errorf("invalid sig %v verified", ocReq.Sig[0])
 	}
 
 	originalNodeId := ocReq.NodeId[0]
 	ocReq.NodeId[0] = originalNodeId[1:] + "1"
-	if ocCred.VerifyOcReqSig(&ocReq) {
+	if ok, _ := VerifyOcReqSig(&ocReq, nil); ok {
 		t.Errorf("invalid node id %v verified", ocReq.NodeId[0])
 	}
 
-	ocReq.NodeId[0] = originalNodeId + "x"
-	if ocCred.VerifyOcReqSig(&ocReq) {
+
+	if ok, _ := VerifyOcReqSig(&ocReq, nil); ok {
 		t.Errorf("invalid node id %v verified", ocReq.NodeId[0])
+	}
+}
+
+type AddressResult struct {
+	Address string `json:"address"`
+	Account string `json:"account"`
+	Amount float64 `json:"amount"`
+	Confirmations int `json:"confirmations"`
+}
+
+type ListReceivedByAddressResult struct {
+	Addresses []AddressResult
+}
+
+func getAnyBtcAddr(conf *util.BitcoindConf) (string, error) {
+	msg, err := btcjson.NewListReceivedByAddressCmd(nil, 0, true)
+	if err != nil { return "", err }
+	
+	json, err := msg.MarshalJSON()
+	if err != nil { return "", err }
+	
+	resp, err := btcjson.RpcCommand(conf.User, conf.Password, conf.Server, json)
+	if err != nil { return "", err }
+
+	for _, r := range resp.Result.([]interface{}) {
+		result := r.(map[string]interface{})
+		return result["address"].(string), nil
+	}
+
+	return "", errors.New("no address found")
+}
+
+func printBitcoindExpected() {
+	println("Note: bitcoind daemon expected to be running")
+}
+
+func TestBtcCredSign(t *testing.T) {
+	printBitcoindExpected()
+	ocReq := client.NewCalcReq([]string{"1 2 +"})
+
+	conf, err := util.LoadBitcoindConf("")
+	if err != nil { t.Errorf("%v", err) }
+
+	addr, err := getAnyBtcAddr(conf)
+	if err != nil { t.Errorf("%v", err) }
+
+	if err != nil { t.Errorf("%v", err) }
+	btcCred := BtcCred{
+		Addr: addr,
+	}
+
+	err = btcCred.SignOcReq(&ocReq, conf)
+	if err != nil { t.Errorf("%v", err) }
+
+	ok, err := VerifyOcReqSig(&ocReq, conf)
+	if err != nil { t.Errorf("%v", err) }
+	if !ok {
+		t.Errorf("sig did not verify")
+	}
+}
+
+func TestInvalidBtcSignatureFails(t *testing.T) {
+	printBitcoindExpected()
+	ocReq := client.NewCalcReq([]string{"1 2 +"})
+
+	conf, err := util.LoadBitcoindConf("")
+	if err != nil { t.Errorf("%v", err) }
+
+	addr, err := getAnyBtcAddr(conf)
+	if err != nil { t.Errorf("%v", err) }
+
+	if err != nil { t.Errorf("%v", err) }
+	btcCred := BtcCred{
+		Addr: addr,
+	}
+
+	err = btcCred.SignOcReq(&ocReq, conf)
+	if err != nil { t.Errorf("%v", err) }
+
+	originalSig := ocReq.Sig[0]
+	ocReq.Sig[0] = originalSig[0:len(originalSig)-2] + "1"
+	ok, err := VerifyOcReqSig(&ocReq, conf)
+	if ok {
+		t.Errorf("invalid sig %v verified", ocReq.Sig[0])
+	}
+	if err == nil || err.Error() != "-5: Malformed base64 encoding" {
+		t.Errorf("expected malformed base64 encoding error, but got  %v", err)
+	}
+
+	originalNodeId := ocReq.NodeId[0]
+	ocReq.NodeId[0] = originalNodeId[0:len(originalNodeId)-2] + "1"
+	ok, err = VerifyOcReqSig(&ocReq, conf)
+	if ok {
+		t.Errorf("invalid node id %v verified", ocReq.NodeId[0])
+	}
+	if err == nil || err.Error() != "-3: Invalid address" {
+		t.Errorf("expected invalid address error, but got  %v", err)
 	}
 }

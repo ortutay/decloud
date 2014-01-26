@@ -6,12 +6,6 @@ import (
 	"log"
 	"encoding/gob"
 	"encoding/base64"
-	"oc/util"
-	"crypto/sha256"
-	"crypto/ecdsa"
-	"crypto/rand"
-	"crypto/elliptic"
-	"math/big"
 )
 var _ = fmt.Printf
 

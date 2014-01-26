@@ -13,6 +13,9 @@ import (
 	"math/big"
 	"strings"
 	"io"
+	"encoding/base64"
+	"errors"
+	"github.com/conformal/btcjson"
 )
 
 const (
@@ -24,6 +27,10 @@ const (
 
 type OcCred struct {
 	Priv *ecdsa.PrivateKey // TODO(ortutay): make private field?
+}
+
+type BtcCred struct {
+	Addr string
 }
 
 func NewOcCred() (*OcCred, error) {
@@ -111,43 +118,104 @@ func (cred *OcCred) SignOcReq(req *msg.OcReq) error {
 	return nil
 }
 
-func (cred *OcCred) VerifyOcReqSig(req *msg.OcReq) bool {
+func VerifyOcReqSig(req *msg.OcReq, conf *util.BitcoindConf) (bool, error) {
 	if len(req.NodeId) != len(req.Sig) {
-		return false
+		return false, nil
 	}
 
 	h, err := getReqSigDataHash(req)
-	if err != nil { return false }
+	if err != nil { return false, err }
 	
 	for i, _ := range(req.NodeId) {
-		nodeId := strings.NewReader(req.NodeId[i])
-		sig := strings.NewReader(req.Sig[i])
-		var x, y, r, s big.Int
+		nodeId := req.NodeId[i]
+		sig := req.Sig[i]
+		fmt.Printf("verify %v %v\n", nodeId, sig)
 
-		n, err := fmt.Fscanf(nodeId, "d%x,%x", &x, &y)
-		if err != nil { return false }
-		n, err = nodeId.Read(make([]byte, 1))
-		if n != 0 || err != io.EOF {
-			return false
-		}
-
-		n, err = fmt.Fscanf(sig, "%x,%x", &r, &s)
-		if err != nil { return false }
-		n, err = sig.Read(make([]byte, 1))
-		if n != 0 || err != io.EOF {
-			return false
-		}
-
-		curve := elliptic.P256()
-		pub := ecdsa.PublicKey{
-			Curve: curve,
-			X: &x,
-			Y: &y,
-		}
-		if !ecdsa.Verify(&pub, h, &r, &s) {
-			return false
+		switch nodeId[0] {
+		case 'd':
+			ok := verifyOcSig(h, nodeId, sig)
+			if !ok { return false, nil}
+		case '1', 'm':
+			if conf == nil {
+				return false, errors.New("need bitcoind conf to verify btc cred")
+			}
+			ok, err := verifyBtcSig(h, nodeId, sig, conf)
+			if err != nil { return false, err }
+			if !ok { return false, nil}
+		default: 
+			return false, errors.New(
+				fmt.Sprintf("unexpected id prefix: %c", nodeId[0]))
 		}
 	}
 
-	return true
+	return true, nil
+}
+
+func verifyOcSig(reqHash []byte, nodeId string, sig string) bool {
+	nodeIdReader := strings.NewReader(nodeId)
+	var x, y, r, s big.Int
+	n, err := fmt.Fscanf(nodeIdReader, "d%x,%x", &x, &y)
+	if err != nil { return false }
+	n, err = nodeIdReader.Read(make([]byte, 1))
+	if n != 0 || err != io.EOF {
+		return false
+	}
+
+	sigReader := strings.NewReader(sig)
+	n, err = fmt.Fscanf(sigReader, "%x,%x", &r, &s)
+	if err != nil { return false }
+	n, err = sigReader.Read(make([]byte, 1))
+	if n != 0 || err != io.EOF {
+		return false
+	}
+
+	curve := elliptic.P256()
+	pub := ecdsa.PublicKey{
+		Curve: curve,
+		X: &x,
+		Y: &y,
+	}
+	return ecdsa.Verify(&pub, reqHash, &r, &s)
+}
+
+func (bc *BtcCred) SignOcReq(req *msg.OcReq, conf *util.BitcoindConf) error {
+	h, err := getReqSigDataHash(req)
+	if err != nil { return err}
+	hb64 := base64.StdEncoding.EncodeToString(h)
+
+	msg, err := btcjson.NewSignMessageCmd(nil, bc.Addr, hb64)
+	if err != nil { return err }
+	json, err := msg.MarshalJSON()
+	if err != nil { return err }
+	resp, err := btcjson.RpcCommand(conf.User, conf.Password, conf.Server, json)
+	if err != nil { return err }
+	sig, ok := resp.Result.(string)
+	if !ok {
+		return errors.New("error during bitcoind JSON-RPC")
+	}
+
+	req.NodeId = append(req.NodeId, fmt.Sprintf(bc.Addr))
+	req.Sig = append(req.Sig, fmt.Sprintf(sig))
+
+	return nil
+}
+
+func verifyBtcSig(reqHash []byte, addr string, sig string, conf *util.BitcoindConf) (bool, error) {
+	hb64 := base64.StdEncoding.EncodeToString(reqHash)
+
+	msg, err := btcjson.NewVerifyMessageCmd(nil, addr, sig, hb64)
+	if err != nil { return false, err }
+	json, err := msg.MarshalJSON()
+	if err != nil { return false, err }
+	resp, err := btcjson.RpcCommand(conf.User, conf.Password, conf.Server, json)
+	if err != nil { return false, err }
+	if resp.Error != nil {
+		return false, resp.Error
+	}
+	verifyResult, ok := resp.Result.(bool)
+	if !ok {
+		return false, errors.New("error during bitcoind JSON-RPC: ")
+	}
+
+	return verifyResult, nil
 }

@@ -1,9 +1,50 @@
 package util
 
 import (
+	"fmt"
 	"os"
+	"os/user"
 	"path"
+	"bufio"
+	"strings"
+	"errors"
 )
+var _ = fmt.Println
+
+type BitcoindConf struct {
+	User string
+	Password string
+	Server string
+}
+
+func LoadBitcoindConf(filename string) (*BitcoindConf, error) {
+	if filename == "" {
+		usr, err := user.Current()
+		if err != nil  { return nil, err }
+		filename = fmt.Sprintf("%s/.bitcoin/bitcoin.conf", usr.HomeDir)
+	}
+	file, err := os.Open(filename)
+	if err != nil { return nil, err }
+	scanner := bufio.NewScanner(file)
+	var conf BitcoindConf
+	for scanner.Scan() {
+		s := strings.Split(scanner.Text(), "=")
+		key, value := s[0], s[1]
+		switch key {
+		case "rpcuser":
+			conf.User = value;
+		case "rpcpassword":
+			conf.Password = value
+		case "rpcport":
+			conf.Server = ":" + value
+		}
+	}
+	if conf.User == "" || conf.Password == "" || conf.Server == ""  {
+		return nil, errors.New(
+			fmt.Sprintf("%v missing one of rpcuser, rpcpassword, rpcport", filename))
+	}
+	return &conf, nil
+}
 
 func GetAppData(filename string) (*os.File, error) {
 	filename, err := normalizeFilename(filename)
