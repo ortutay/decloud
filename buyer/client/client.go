@@ -6,8 +6,8 @@ import (
 
 func NewCalcReq(queries []string) msg.OcReq {
 	msg := msg.OcReq{
-		NodeId: "TODO",
-		Sig: "TODO",
+		NodeId: []string{},
+		Sig: []string{},
 		Nonce: "TODO",
 		Service: "calc",
 		Method: "calculate",

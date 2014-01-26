@@ -1,12 +1,13 @@
 package msg
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"encoding/gob"
 	"encoding/base64"
-	"bytes"
 	"oc/util"
+	"crypto/sha256"
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/elliptic"
@@ -14,11 +15,12 @@ import (
 )
 var _ = fmt.Printf
 
-// For simplicity, all fields are string or []byte
+// For now, all fields are string or []byte.
+// TODO(ortutay): add types for these fields
 type OcReq struct {
-	NodeId string
+	NodeId []string
+	Sig []string
 	Nonce string
-	Sig string
 	Service string
 	Method string
 	Args []string
@@ -28,8 +30,9 @@ type OcReq struct {
 }
 
 type OcResp struct {
-	NodeId string
-	Sig string
+	NodeId []string
+	Sig []string
+	Nonce string
 	Status string
 	// TODO(ortutay): status code
 	Body []byte
@@ -37,8 +40,9 @@ type OcResp struct {
 
 func NewRespOk(body []byte) *OcResp {
 	resp := OcResp{
-		NodeId: "TODO",
-		Sig: "TODO",
+		NodeId: []string{},
+		Sig: []string{},
+		Nonce: "TODO",
 		Status: "ok",
 		Body: body,
 	}
@@ -91,14 +95,18 @@ func decode(b64 string, d interface{}) error {
 	return nil
 }
 
-// functions related to node ID/signing; may want these in a different package
+// functions related to node ID/signing; may want these in a different package.
+// probably packaged under the concept of a node identity/pseudonym object that
+// encompases the assorted private keys, signing, and verification
 const (
 	PRIVATE_KEY_FILENAME = "nodeid-priv"
+	NODE_ID_RAND_NUM_BYTES = 256
+	SIG_RAND_NUM_BYTES = 256
 )
 
 func MakeNodeId(filename string) error {
 	if filename == "" { filename = PRIVATE_KEY_FILENAME }
-	b := make([]byte, 256)
+	b := make([]byte, NODE_ID_RAND_NUM_BYTES)
 	_, err := rand.Read(b)
 	if err != nil { return err }
 
@@ -136,4 +144,49 @@ func GetNodePrivateKey(filename string) (*ecdsa.PrivateKey, error) {
 		D: &d,
 	}
 	return &priv, nil
+}
+
+func getReqSigData(req *OcReq) []byte {
+	var buf bytes.Buffer
+	buf.WriteString(req.Nonce)
+	buf.WriteString(req.Service)
+	buf.WriteString(req.Method)
+	for _, arg := range req.Args {
+		buf.WriteString(arg)
+	}
+	buf.WriteString(req.PaymentType)
+	buf.WriteString(req.PaymentTxn)
+	buf.Write(req.Body)
+	return buf.Bytes()
+}
+
+func SignOcReq(req *OcReq) error {
+	bytes := getReqSigData(req)
+
+	h := sha256.New()
+	h.Write(bytes)
+	hash := make([]byte, h.Size())
+	println(fmt.Sprintf("hash init: %v", hash))
+	hash = h.Sum(hash)
+
+	randBytes := make([]byte, SIG_RAND_NUM_BYTES)
+	_, err := rand.Read(randBytes)
+	if err != nil {return err }
+
+	// r, s, err := ecdsa.Sign(randBytes, )
+	// if err != nil {return err }
+
+	return nil
+}
+
+func SignOcResp(resp *OcResp) error {
+	return nil
+}
+
+func VerifyOcReq(req *OcReq) bool {
+	return false
+}
+
+func VerifyOcResp(resp *OcResp) bool {
+	return false
 }
