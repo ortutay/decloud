@@ -99,17 +99,18 @@ Additional **payment-type**'s may be supported in the future, such as micropayme
 The **status** field:
 
 * **ok**: Equivalent of 2xx for HTTP
+* **client-error**: Equivalent of 4xx for HTTP
+  * **bad-request**
+  * **invalid-signature**
+  * **service-unsupported**
+  * **method-unsupported**
+* **server-error**: Equivalent of 5xx for HTTP
 * **request-declined**: A valid request that was declined.
   * **refresh-nonce**: 
   * **payment-declined**: Optional detail below
     * **too-low**: Payment is too low
     * **no-defer**: Defer payment is not accepted
-    * **acceptable-payment**: [payment type] [currency] [amount]
-* **client-error**: Equivalent of 4xx for HTTP
-  * **invalid-signature**
-  * **service-unsupported**
-  * **method-unsupported**
-* **server-error**: Equivalent of 5xx for HTTP
+    * **acceptable-payment**: optional, server may indicate an acceptable payment for this request [payment type] [currency] [amount]
 
 ### Serialization format
 
@@ -119,7 +120,7 @@ To be determined
 
 To be determined, but will probably be supported
 
-Decloud client/server
+Decloud
 -------
 
 A decloud sever serves requests received the OpenCloud protocol, in the same away that an Apache server communicates via HTTP. Decloud also encompasses a client implementation, which is comparable to **wget**.
@@ -149,3 +150,34 @@ Components of a decloud **client**:
 
 * Defered payment fulfillment
 * Long-term service auditing (eg. storage)
+
+### Server request processing
+
+Decloud servers handle an incoming request in the following fashion:
+
+* Is the request valid?
+	* Are sigs valid?
+	* Is the nonce valid?
+	* Is the service available?
+	* Is the method available?
+* Access controls, reputation, payment
+	* Based on credentials, do we grant access?
+	* Based on reputation, do we serve this request?
+	* Based on payment, do we serve this requset?
+* Pass of to service
+
+Decloud clients send requests, and handle responses, in the following fashion:
+
+* Request
+	* Set service, method, args, nonce, body, and payment
+	* Sign request
+	* Send request
+* Response handling
+	* If "ok": exit
+	* If "client-error": report error and exit
+	* If "server-error": report error and exit
+	* If "request-declined":
+		* If "refresh-nonce": re-send request with new nonce
+		* If "payment-declined"
+			* If "too-low": based on bidding strategy, either increase payment or exit
+			* If "no-defer": based on bidding strategy, either switch to "attached" payment or exit
