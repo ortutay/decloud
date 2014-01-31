@@ -5,16 +5,39 @@ decloud
 
 Decloud uses bitcoin to provide payments and scarce identity for a decentralized cloud.
 
+Background
+-------
+
+Open source software has been a boon to developers around the world. Much closed source software has an open source equivalent: there is Linux to Windows, Mozilla to Internet Explorer, gcc to Visual Studio, and so on.
+
+In the cloud world, things are different. We have many proprietary providers: Amazon Web Services, Dropbox, Google Cloud, GitHub, and so on. However, there is no widely used concept of “open” cloud software. Proprietary, locked in, non-interoperable systems are the standard for cloud software.
+
+Naively, one might expect that if you released all the source code to Dropbox, that would be your “open” cloud right there. But this is not the case. The point of cloud software is that someone else provides the service, so having the source code is completely besides the point. Anything that requires owning hardware to use it is not a cloud solution for our purposes.
+
+An open cloud system would really be a marketplace for cloud services. Buyers would be able to connect to the network to purchase services, and sellers would be able to connect to the network to provide services.
+
+Bitcoin is an enabler for such a technology in two ways. First, it is a payment system that has all of the following properties:
+
+1. Supports micropayments
+2. International
+3. Open
+
+Second, it provides a basis for scarce identity, which can be used to mitigate the effects of bad actors in the network.
+
+Below is a working draft design document of the OpenCloud protocol, and the decloud client/server.
+
 OpenCloud protocol
 --------
 
-Decloud communicates through the OpenCloud protocol.
+The decloud client and server communicate through the OpenCloud protocol, in the same way that a web browser and Apache communicate over HTTP.
+
+Below is a draft of the protocol.
 
 ### OpenCloud Requests
 
 * **id**: Comma separated list of strings representing the client's identity credentials. For a given request, a node may present zero or more credentials. Currently, bitcoin addresses and OpenCloud addresses are supported as credentials.
 * **sig**: Comma separate list of digital signatures. For every identity credential, one signature must be provided to prove ownership of the private key corresponding to the credential.
-* **nonce**: Optional nonce
+* **nonce**
 * **service**
 * **method**
 * **args**
@@ -50,18 +73,19 @@ The **payment-type** and **payment** fields:
 	<tr>
 	<td>defer</td>
 	<td>
-	[currency] [amount] [id]
+	[currency] [amount] [id] [optional: defer-threshold]
 	<ul>
 	<li>**currency**: string, typicaly BTC, USD, EUR, etc.</li>
 	<li>**amount**: floating point number, the amount of the payment</li>
 	<li>**id**: id with which to associate this defered payment. Server must not accept ID unless it has provided a valid signature on this request.</li>
+	<li>**defer-threshold**: Optional, if included, describes to the server the trigger for fulfilling the defered payment</li>
 	</ul>
 	</td>
 
 	</tr>
 </table>
 
-Additional **payment-type**s may be supported in the future, such as micropayment channels.
+Additional **payment-type**'s may be supported in the future, such as micropayment channels.
 
 ### OpenCloud Responses
 
@@ -74,14 +98,54 @@ Additional **payment-type**s may be supported in the future, such as micropaymen
 
 The **status** field:
 
-*ok*
-*error*
-*payment-declined*
+* **ok**: Equivalent of 2xx for HTTP
+* **request-declined**: A valid request that was declined.
+  * **refresh-nonce**: 
+  * **payment-declined**: Optional detail below
+    * **too-low**: Payment is too low
+    * **no-defer**: Defer payment is not accepted
+    * **acceptable-payment**: [payment type] [currency] [amount]
+* **client-error**: Equivalent of 4xx for HTTP
+  * **invalid-signature**
+  * **service-unsupported**
+  * **method-unsupported**
+* **server-error**: Equivalent of 5xx for HTTP
 
-For *payment-declined*, the server may choose to include additional, optional information:
-> **too-low**: Payment is too low
-> **no-defer**: Defer payment is not accepted
+### Serialization format
 
-The server may also choose to include a list of acceptable payment options, in the form:
-> **acceptable-payment**: [payment type, {attached|defer}] [currency] [amount] [optional: defer-account] [optional: defer-threshhold]
+To be determined
 
+### OpenCloud protocol over HTTP
+
+To be determined, but will probably be supported
+
+Decloud client/server
+-------
+
+A decloud sever serves requests received the OpenCloud protocol, in the same away that an Apache server communicates via HTTP. Decloud also encompasses a client implementation, which is comparable to **wget**.
+
+Below is a rough outline of the components of the decloud client and server.
+
+Components **shared** between decloud clients and servers:
+
+* Identity credentials
+  * OpenCloud ID
+  * Bitcoin wallet (addresses) as credentials
+* Reputation management
+  * Record collection
+  * Aggregation
+  * Peer provided reputation handling
+* OpenCloud protocol support
+
+Components of a decloud **server**:
+
+* Access control
+  * Service/method granularity
+  * May reference identity credentials
+* Specific service implementations
+* Deferred payment tracking
+
+Components of a decloud **client**:
+
+* Defered payment fulfillment
+* Long-term service auditing (eg. storage)
