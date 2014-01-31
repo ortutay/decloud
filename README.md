@@ -173,11 +173,11 @@ Decloud clients send requests, and handle responses, in the following fashion:
 	* Sign request
 	* Send request
 * Response handling
-	* If "ok": exit
-	* If "client-error": report error and exit
-	* If "server-error": report error and exit
-	* If "request-declined":
-		* If "refresh-nonce": re-send request with new nonce
-		* If "payment-declined"
-			* If "too-low": based on bidding strategy, either increase payment or exit
-			* If "no-defer": based on bidding strategy, either switch to "attached" payment or exit
+	* If **ok**: exit
+	* If **client-error**: report error and exit
+	* If **server-error**: report error and exit
+	* If **request-declined**:
+		* If **refresh-nonce**: re-send request with new nonce
+		* If **payment-declined"
+			* If **too-low**: based on bidding strategy, either increase payment or exit
+			* If **no-defer**: based on bidding strategy, either switch to **attached" payment or exit
