@@ -1,28 +1,29 @@
 package cred
+
 // TODO(ortutay): different name?
 
 import (
-	"fmt"
-	"oc/msg"
-	"crypto/ecdsa"
-	"crypto/rand"
 	"bytes"
-	"oc/util"
-	"crypto/sha256"
+	"crypto/ecdsa"
 	"crypto/elliptic"
-	"math/big"
-	"strings"
-	"io"
+	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"github.com/conformal/btcjson"
+	"io"
+	"math/big"
+	"oc/msg"
+	"oc/util"
+	"strings"
 )
 
 const (
-	PRIVATE_KEY_FILENAME = "nodeid-priv"
-	OC_ID_PREFIX = 'c' // "c" for open"c"loud
+	PRIVATE_KEY_FILENAME   = "nodeid-priv"
+	OC_ID_PREFIX           = 'c' // "c" for open"c"loud
 	NODE_ID_RAND_NUM_BYTES = 256
-	SIG_RAND_NUM_BYTES = 256
+	SIG_RAND_NUM_BYTES     = 256
 )
 
 type Signer interface {
@@ -70,8 +71,10 @@ func NewOcCred() (*OcCred, error) {
 	return &ocCred, nil
 }
 
-func (cred *OcCred) StorePrivateKey(filename string)  error {
-	if filename == "" { filename = PRIVATE_KEY_FILENAME }
+func (cred *OcCred) StorePrivateKey(filename string) error {
+	if filename == "" {
+		filename = PRIVATE_KEY_FILENAME
+	}
 	d := fmt.Sprintf("%x\n", cred.Priv.D)
 	err := util.StoreAppData(filename, []byte(d), 0600)
 	if err != nil {
@@ -81,7 +84,9 @@ func (cred *OcCred) StorePrivateKey(filename string)  error {
 }
 
 func NewOcCredLoadFromFile(filename string) (*OcCred, error) {
-	if filename == "" { filename = PRIVATE_KEY_FILENAME }
+	if filename == "" {
+		filename = PRIVATE_KEY_FILENAME
+	}
 	file, err := util.GetAppData(filename)
 	if err != nil {
 		return nil, fmt.Errorf("error getting app data: %v", err.Error())
@@ -93,8 +98,8 @@ func NewOcCredLoadFromFile(filename string) (*OcCred, error) {
 	priv := ecdsa.PrivateKey{
 		PublicKey: ecdsa.PublicKey{
 			Curve: curve,
-			X: x,
-			Y: y,
+			X:     x,
+			Y:     y,
 		},
 		D: &d,
 	}
@@ -162,8 +167,8 @@ func VerifyOcReqSig(req *msg.OcReq, conf *util.BitcoindConf) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	
-	for i, _ := range(req.NodeId) {
+
+	for i, _ := range req.NodeId {
 		nodeId := req.NodeId[i]
 		sig := req.Sig[i]
 		fmt.Printf("verify %v %v\n", nodeId, sig)
@@ -171,7 +176,9 @@ func VerifyOcReqSig(req *msg.OcReq, conf *util.BitcoindConf) (bool, error) {
 		switch nodeId[0] {
 		case 'd':
 			ok := verifyOcSig(h, nodeId, sig)
-			if !ok { return false, nil}
+			if !ok {
+				return false, nil
+			}
 		case '1', 'm':
 			if conf == nil {
 				return false, errors.New("need bitcoind conf to verify btc cred")
@@ -183,7 +190,7 @@ func VerifyOcReqSig(req *msg.OcReq, conf *util.BitcoindConf) (bool, error) {
 			if !ok {
 				return false, nil
 			}
-		default: 
+		default:
 			return false, errors.New(
 				fmt.Sprintf("unexpected id prefix: %c", nodeId[0]))
 		}
@@ -217,15 +224,17 @@ func verifyOcSig(reqHash []byte, nodeId string, sig string) bool {
 	curve := elliptic.P256()
 	pub := ecdsa.PublicKey{
 		Curve: curve,
-		X: &x,
-		Y: &y,
+		X:     &x,
+		Y:     &y,
 	}
 	return ecdsa.Verify(&pub, reqHash, &r, &s)
 }
 
 func (bc *BtcCred) SignOcReq(req *msg.OcReq, conf *util.BitcoindConf) error {
 	h, err := getReqSigDataHash(req)
-	if err != nil { return err}
+	if err != nil {
+		return err
+	}
 	hb64 := base64.StdEncoding.EncodeToString(h)
 
 	msg, err := btcjson.NewSignMessageCmd(nil, bc.Addr, hb64)

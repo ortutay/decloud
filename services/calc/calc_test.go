@@ -1,12 +1,13 @@
 package calc
 
 import (
-	"testing"
+	"fmt"
+	"log"
 	"oc/buyer/client"
 	"oc/seller/calc"
-	"log"
-	"fmt"
+	"testing"
 )
+
 var _ = fmt.Printf
 
 func TestHandleCalculate_Simple(t *testing.T) {

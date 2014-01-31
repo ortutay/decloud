@@ -1,27 +1,27 @@
 package node
 
 import (
-	"testing"
-	"oc/msg"
 	"oc/cred"
+	"oc/msg"
 	"oc/services/calc"
+	"testing"
 )
 
 func TestRoundTrip(t *testing.T) {
 	addr := ":9443"
 	handler := calc.CalcService{}
 	s := Server{
-		Cred: &cred.Cred{},
-		Addr: addr,
+		Cred:    &cred.Cred{},
+		Addr:    addr,
 		Handler: handler,
 	}
-	go (func () {
+	go (func() {
 		err := s.ListenAndServe()
 		if err != nil {
 			t.Errorf(err.Error())
 		}
 	})()
-	
+
 	ocCred, err := cred.NewOcCred()
 	if err != nil {
 		t.Errorf("%v", err)

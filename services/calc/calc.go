@@ -1,25 +1,26 @@
 package calc
 
 import (
+	"errors"
+	"fmt"
+	"oc/msg"
 	"strconv"
 	"strings"
-	"oc/msg"
-	"fmt"
-	"errors"
 )
+
 var _ = fmt.Printf
 
 func NewCalcReq(queries []string) *msg.OcReq {
 	msg := msg.OcReq{
-		NodeId: []string{},
-		Sig: []string{},
-		Nonce: "",
-		Service: "calc",
-		Method: "calculate",
-		Args: queries,
+		NodeId:      []string{},
+		Sig:         []string{},
+		Nonce:       "",
+		Service:     "calc",
+		Method:      "calculate",
+		Args:        queries,
 		PaymentType: "",
-		PaymentTxn: "",
-		Body: []byte(""),
+		PaymentTxn:  "",
+		Body:        []byte(""),
 	}
 	return &msg
 }
@@ -47,19 +48,19 @@ func (cs CalcService) HandleCalculate(req *msg.OcReq) (*msg.OcResp, error) {
 			switch token {
 			case "+":
 				r := stack[len(stack)-1] + stack[len(stack)-2]
-				stack = stack[0:len(stack)-2]
+				stack = stack[0 : len(stack)-2]
 				stack = append(stack, r)
 			case "-":
 				r := stack[len(stack)-2] - stack[len(stack)-1]
-				stack = stack[0:len(stack)-2]
+				stack = stack[0 : len(stack)-2]
 				stack = append(stack, r)
 			case "/":
 				r := stack[len(stack)-2] / stack[len(stack)-1]
-				stack = stack[0:len(stack)-2]
+				stack = stack[0 : len(stack)-2]
 				stack = append(stack, r)
 			case "*":
 				r := stack[len(stack)-1] * stack[len(stack)-2]
-				stack = stack[0:len(stack)-2]
+				stack = stack[0 : len(stack)-2]
 				stack = append(stack, r)
 			default:
 				f, err := strconv.ParseFloat(token, 54)

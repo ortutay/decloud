@@ -1,14 +1,13 @@
 package node
 
 import (
-	"io"
-	"fmt"
 	"bufio"
+	"fmt"
+	"io"
+	"net"
 	"oc/cred"
 	"oc/msg"
-	"net"
 )
-
 
 type Client struct {
 	Cred *cred.Cred
@@ -24,7 +23,7 @@ func (c *Client) SendRequest(addr string, req *msg.OcReq) (*msg.OcResp, error) {
 		// TODO(ortutay): same as above
 		panic("expected no nonce")
 	}
-	
+
 	// TODO(ortutay): add nonce
 
 	err := c.Cred.SignOcReq(req)
@@ -41,7 +40,7 @@ func (c *Client) SendRequest(addr string, req *msg.OcReq) (*msg.OcResp, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error while encoding: %v", err.Error())
 	}
-	fmt.Fprintf(conn, string(encoded) + "\n")
+	fmt.Fprintf(conn, string(encoded)+"\n")
 
 	b64resp, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
@@ -61,11 +60,10 @@ type Handler interface {
 }
 
 type Server struct {
-	Cred *cred.Cred
-	Addr string
+	Cred    *cred.Cred
+	Addr    string
 	Handler Handler
 }
-
 
 func (s *Server) ListenAndServe() error {
 	fmt.Printf("listening on %s\n", s.Addr)

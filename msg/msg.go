@@ -1,26 +1,27 @@
 package msg
 
 import (
-	"errors"
 	"bytes"
-	"fmt"
-	"encoding/gob"
 	"encoding/base64"
+	"encoding/gob"
+	"errors"
+	"fmt"
 )
+
 var _ = fmt.Printf
 
 // For now, all fields are string or []byte.
 // TODO(ortutay): add types for these fields
 type OcReq struct {
-	NodeId []string
-	Sig []string
-	Nonce string
-	Service string
-	Method string
-	Args []string
+	NodeId      []string
+	Sig         []string
+	Nonce       string
+	Service     string
+	Method      string
+	Args        []string
 	PaymentType string
-	PaymentTxn string
-	Body []byte
+	PaymentTxn  string
+	Body        []byte
 }
 
 func (r *OcReq) Encode() ([]byte, error) {
@@ -32,28 +33,29 @@ func (r *OcReq) IsSigned() bool {
 }
 
 type OcRespStatus string
+
 const (
 	OK OcRespStatus = "ok"
 
-	CLIENT_ERROR = "client-error"
-	BAD_REQUEST = CLIENT_ERROR + "/bad-request"
-	INVALID_SIGNATURE = CLIENT_ERROR + "/invalid-signature"
+	CLIENT_ERROR        = "client-error"
+	BAD_REQUEST         = CLIENT_ERROR + "/bad-request"
+	INVALID_SIGNATURE   = CLIENT_ERROR + "/invalid-signature"
 	SERVICE_UNSUPPORTED = CLIENT_ERROR + "/service-unsupported"
-	METHOD_UNSUPPORTED = CLIENT_ERROR + "/method-unsupported"
+	METHOD_UNSUPPORTED  = CLIENT_ERROR + "/method-unsupported"
 
 	SERVER_ERROR = "server-error"
 
 	REQUEST_DECLINED = "request-declined"
-	REFRESH_NONCE = REQUEST_DECLINED + "/refresh-nonce"
+	REFRESH_NONCE    = REQUEST_DECLINED + "/refresh-nonce"
 	PAYMENT_DECLINED = REQUEST_DECLINED + "/payment-declined"
-	TOO_LOW = PAYMENT_DECLINED + "/too-low"
-	NO_DEFER = PAYMENT_DECLINED + "/no-defer"
+	TOO_LOW          = PAYMENT_DECLINED + "/too-low"
+	NO_DEFER         = PAYMENT_DECLINED + "/no-defer"
 )
 
 type OcResp struct {
 	NodeId []string
-	Sig []string
-	Nonce string
+	Sig    []string
+	Nonce  string
 	Status OcRespStatus
 	// TODO(ortutay): status code
 	Body []byte
@@ -62,10 +64,10 @@ type OcResp struct {
 func NewRespOk(body []byte) *OcResp {
 	resp := OcResp{
 		NodeId: []string{},
-		Sig: []string{},
-		Nonce: "", // TODO(ortutay)
+		Sig:    []string{},
+		Nonce:  "", // TODO(ortutay)
 		Status: OK,
-		Body: body,
+		Body:   body,
 	}
 	return &resp
 }
@@ -77,8 +79,8 @@ func NewRespError(status OcRespStatus) *OcResp {
 
 	resp := OcResp{
 		NodeId: []string{},
-		Sig: []string{},
-		Nonce: "", // TODO(ortutay)
+		Sig:    []string{},
+		Nonce:  "", // TODO(ortutay)
 		Status: status,
 	}
 	return &resp
