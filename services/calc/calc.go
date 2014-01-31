@@ -9,18 +9,36 @@ import (
 )
 var _ = fmt.Printf
 
-func Handle(req *msg.OcReq) (*msg.OcResp, error) {
+func NewCalcReq(queries []string) *msg.OcReq {
+	msg := msg.OcReq{
+		NodeId: []string{},
+		Sig: []string{},
+		Nonce: "",
+		Service: "calc",
+		Method: "calculate",
+		Args: queries,
+		PaymentType: "",
+		PaymentTxn: "",
+		Body: []byte(""),
+	}
+	return &msg
+}
+
+type CalcService struct {
+}
+
+func (cs CalcService) Handle(req *msg.OcReq) (*msg.OcResp, error) {
 	println(fmt.Sprintf("calc got request: %v", req))
 	switch req.Method {
 	case "calculate":
-		return HandleCalculate(req)
+		return cs.HandleCalculate(req)
 	default:
 		return nil, errors.New("unhandled method")
 	}
 	return nil, nil
 }
 
-func HandleCalculate(req *msg.OcReq) (*msg.OcResp, error) {
+func (cs CalcService) HandleCalculate(req *msg.OcReq) (*msg.OcResp, error) {
 	var results []string
 	for _, q := range req.Args {
 		tokens := strings.Split(q, " ")

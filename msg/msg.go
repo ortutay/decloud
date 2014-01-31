@@ -1,9 +1,9 @@
 package msg
 
 import (
+	"errors"
 	"bytes"
 	"fmt"
-	"log"
 	"encoding/gob"
 	"encoding/base64"
 )
@@ -23,11 +23,38 @@ type OcReq struct {
 	Body []byte
 }
 
+func (r *OcReq) Encode() ([]byte, error) {
+	return encode(r)
+}
+
+func (r *OcReq) IsSigned() bool {
+	return len(r.Sig) > 0
+}
+
+type OcRespStatus string
+const (
+	OK OcRespStatus = "ok"
+
+	CLIENT_ERROR = "client-error"
+	BAD_REQUEST = CLIENT_ERROR + "/bad-request"
+	INVALID_SIGNATURE = CLIENT_ERROR + "/invalid-signature"
+	SERVICE_UNSUPPORTED = CLIENT_ERROR + "/service-unsupported"
+	METHOD_UNSUPPORTED = CLIENT_ERROR + "/method-unsupported"
+
+	SERVER_ERROR = "server-error"
+
+	REQUEST_DECLINED = "request-declined"
+	REFRESH_NONCE = REQUEST_DECLINED + "/refresh-nonce"
+	PAYMENT_DECLINED = REQUEST_DECLINED + "/payment-declined"
+	TOO_LOW = PAYMENT_DECLINED + "/too-low"
+	NO_DEFER = PAYMENT_DECLINED + "/no-defer"
+)
+
 type OcResp struct {
 	NodeId []string
 	Sig []string
 	Nonce string
-	Status string
+	Status OcRespStatus
 	// TODO(ortutay): status code
 	Body []byte
 }
@@ -36,32 +63,42 @@ func NewRespOk(body []byte) *OcResp {
 	resp := OcResp{
 		NodeId: []string{},
 		Sig: []string{},
-		Nonce: "TODO",
-		Status: "ok",
+		Nonce: "", // TODO(ortutay)
+		Status: OK,
 		Body: body,
 	}
 	return &resp
 }
 
-func EncodeReq(req *OcReq) []byte {
-	return encode(req)
+func NewRespError(status OcRespStatus) *OcResp {
+	if status == OK {
+		panic("got status OK, but expected an error status")
+	}
+
+	resp := OcResp{
+		NodeId: []string{},
+		Sig: []string{},
+		Nonce: "", // TODO(ortutay)
+		Status: status,
+	}
+	return &resp
 }
 
-func EncodeResp(resp *OcResp) []byte {
-	return encode(resp)
+func (r *OcResp) Encode() ([]byte, error) {
+	return encode(r)
 }
 
-func encode(m interface{}) []byte {
+func encode(m interface{}) ([]byte, error) {
 	// TODO(ortutay): for now, just doing gob->base64 to encode; will need
 	// to figure out what to actually do
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(m)
 	if err != nil {
-		log.Fatal("couldn't encode", m)
+		return []byte{}, errors.New("couldn't encode")
 	}
 	b64 := base64.StdEncoding.EncodeToString(buf.Bytes())
-	return []byte(b64)
+	return []byte(b64), nil
 }
 
 func DecodeReq(b64 string) (*OcReq, error) {
