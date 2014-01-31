@@ -10,9 +10,9 @@ Background
 
 Open source software has been a boon to developers around the world. Much closed source software has an open source equivalent: there is Linux to Windows, Mozilla to Internet Explorer, gcc to Visual Studio, and so on.
 
-In the cloud world, things are different. We have many proprietary providers: Amazon Web Services, Dropbox, Google Cloud, GitHub, and so on. However, there is no widely used concept of “open” cloud software. Proprietary, locked in, non-interoperable systems are the standard for cloud software.
+In the cloud world, things are different. We have many proprietary providers: Amazon Web Services, Dropbox, Google Cloud, GitHub, and so on. However, there is no widely used concept of "open" cloud software. Proprietary, locked in, non-interoperable systems are the standard for cloud software.
 
-Naively, one might expect that if you released all the source code to Dropbox, that would be your “open” cloud right there. But this is not the case. The point of cloud software is that someone else provides the service, so having the source code is completely besides the point. Anything that requires owning hardware to use it is not a cloud solution for our purposes.
+Naively, one might expect that if you released all the source code to Dropbox, that would be your "open" cloud right there. But this is not the case. The point of cloud software is that someone else provides the service, so having the source code is completely besides the point. Anything that requires owning hardware to use it is not a cloud solution for our purposes.
 
 An open cloud system would really be a marketplace for cloud services. Buyers would be able to connect to the network to purchase services, and sellers would be able to connect to the network to provide services.
 
@@ -64,9 +64,9 @@ The **payment-type** and **payment** fields:
 	[currency] [amount] [txn]
 
 	<ul>
-	<li>**currency**: string, typicaly BTC, USD, EUR, etc.</li>
-	<li>**amount**: floating point number, the amount of the payment</li>
-	<li>**txn**: base64 encoded transaction in the payment amount</li>
+	<li><b>currency</b>: string, typicaly BTC, USD, EUR, etc.</li>
+	<li><b>amount</b>: floating point number, the amount of the payment</li>
+	<li><b>txn</b>: base64 encoded transaction in the payment amount</li>
 	</ul>
 	</td>
 
@@ -75,10 +75,10 @@ The **payment-type** and **payment** fields:
 	<td>
 	[currency] [amount] [id] [optional: defer-threshold]
 	<ul>
-	<li>**currency**: string, typicaly BTC, USD, EUR, etc.</li>
-	<li>**amount**: floating point number, the amount of the payment</li>
-	<li>**id**: id with which to associate this defered payment. Server must not accept ID unless it has provided a valid signature on this request.</li>
-	<li>**defer-threshold**: Optional, if included, describes to the server the trigger for fulfilling the defered payment</li>
+	<li><b>currency</b>: string, typicaly BTC, USD, EUR, etc.</li>
+	<li><b>amount</b>: floating point number, the amount of the payment</li>
+	<li><b>id</b>: id with which to associate this defered payment. Server must not accept ID unless it has provided a valid signature on this request.</li>
+	<li><b>defer-threshold</b>: Optional, if included, describes to the server the trigger for fulfilling the defered payment</li>
 	</ul>
 	</td>
 
