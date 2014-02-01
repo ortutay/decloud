@@ -1,12 +1,10 @@
-decloud
-=======
+# decloud
 
 *DEC-entralized-CLOUD*
 
 Decloud uses bitcoin to provide payments and scarce identity for a decentralized cloud.
 
-Background
--------
+## Background
 
 Open source software has been a boon to developers around the world. Much closed source software has an open source equivalent: there is Linux to Windows, Mozilla to Internet Explorer, gcc to Visual Studio, and so on.
 
@@ -26,8 +24,7 @@ Second, it provides a basis for scarce identity, which can be used to mitigate t
 
 Below is a working draft design document of the OpenCloud protocol, and the decloud client/server.
 
-OpenCloud protocol
---------
+## OpenCloud protocol
 
 The decloud client and server communicate through the OpenCloud protocol, in the same way that a web browser and Apache communicate over HTTP.
 
@@ -120,8 +117,7 @@ To be determined
 
 To be determined, but will probably be supported
 
-Decloud
--------
+## Decloud
 
 A decloud sever serves requests received the OpenCloud protocol, in the same away that an Apache server communicates via HTTP. Decloud also encompasses a client implementation, which is comparable to **wget**.
 
@@ -145,13 +141,15 @@ Components of a decloud **server**:
   * May reference identity credentials
 * Specific service implementations
 * Deferred payment tracking
+* Bid acceptance strategy
 
 Components of a decloud **client**:
 
 * Defered payment fulfillment
 * Long-term service auditing (eg. storage)
+* Bidding strategy
 
-### Server request processing
+### Request processing
 
 Decloud servers handle an incoming request in the following fashion:
 
@@ -178,6 +176,31 @@ Decloud clients send requests, and handle responses, in the following fashion:
 	* If **server-error**: report error and exit
 	* If **request-declined**:
 		* If **refresh-nonce**: re-send request with new nonce
-		* If **payment-declined"
+		* If **payment-declined**:
 			* If **too-low**: based on bidding strategy, either increase payment or exit
 			* If **no-defer**: based on bidding strategy, either switch to **attached" payment or exit
+
+### Services
+
+A decloud server can choose to run any number of services.
+
+Decloud services provide the following standard method calls:
+
+* **service.info**: to be determined, but probably version information
+* **service.methods**: will provide a list of available methods
+* **service.quote(method_name, units_of_service)**: cost of a method call in some unit. The unit of cost is determined by each service, and may have multiple dimensions (eg. space and duration for storage, or CPU hours and RAM for computation)
+
+To be determined: 
+
+* Namespacing
+
+#### Standard services
+
+The following standard services are to be incldued by default in the decloud server:
+
+* **info**: to be determined, but probably client name and version number
+* **peers**: share known peers
+	* **peers.list**: list known peers
+	* **peers.find(id)**: returns IP address of peer with that id, if known
+* **repuation**: share my reputation data
+* **market**: share my knowledge of market prices
