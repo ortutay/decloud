@@ -162,7 +162,7 @@ Decloud servers handle an incoming request in the following fashion:
 	* Based on credentials, do we grant access?
 	* Based on reputation, do we serve this request?
 	* Based on payment, do we serve this request?
-* Pass of to service
+* Pass off to service
 
 Decloud clients send requests, and handle responses, in the following fashion:
 
