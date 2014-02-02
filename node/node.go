@@ -16,7 +16,7 @@ type Client struct {
 func (c *Client) SendRequest(addr string, req *msg.OcReq) (*msg.OcResp, error) {
 	if req.IsSigned() {
 		// TODO(ortutay): not sure if this needs to be a panic; also may want to
-		// rethink the structure around this
+		// rethink the general structure
 		panic(fmt.Sprintf("expected to sign the request: %v", req.Sig))
 	}
 	if req.Nonce != "" {
@@ -40,7 +40,11 @@ func (c *Client) SendRequest(addr string, req *msg.OcReq) (*msg.OcResp, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error while encoding: %v", err.Error())
 	}
-	fmt.Fprintf(conn, string(encoded)+"\n")
+
+	_, err = fmt.Fprintf(conn, string(encoded)+"\n")
+	if err != nil {
+		return nil, fmt.Errorf("error while writing to conn: %v", err.Error())
+	}
 
 	b64resp, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
@@ -60,9 +64,33 @@ type Handler interface {
 }
 
 type Server struct {
-	Cred    *cred.Cred
-	Addr    string
-	Handler Handler
+	Cred     *cred.Cred
+	Addr     string
+	Policies []Policy
+	Handler  Handler
+}
+
+type PolicyCmd string
+
+const (
+	ALLOW   PolicyCmd = "allow"
+	DENY              = "deny"
+	MIN_FEE           = "min-fee"
+	// TODO(ortutay): add rate-limit
+	// TODO(ortutay): additional policy commands
+)
+
+// TODO(ortutay): implement real selectors; PolicySelector is just a placeholder
+type PolicySelector string
+
+const (
+	GLOBAL PolicySelector = "global"
+)
+
+type Policy struct {
+	Selector PolicySelector
+	Cmd      PolicyCmd
+	Args     []interface{}
 }
 
 func (s *Server) ListenAndServe() error {
@@ -71,28 +99,74 @@ func (s *Server) ListenAndServe() error {
 	if err != nil {
 		return fmt.Errorf("couldn't listen on %s: %s", s.Addr, err.Error())
 	}
+	defer listener.Close()
 	for {
-		conn, err := listener.Accept()
+		err := s.Serve(listener)
 		if err != nil {
 			println("error accepting: ", err.Error())
 			continue
 		}
-		go (func(conn net.Conn) {
-			req, err := readOcReq(conn)
-			if err != nil {
-				writeErrorResp(msg.BAD_REQUEST, conn)
-			} else {
-				resp, err := s.Handler.Handle(req)
-				if err != nil {
-					writeErrorResp(msg.SERVER_ERROR, conn)
-				} else {
-					writeResp(resp, conn)
-				}
-			}
-			fmt.Fprintf(conn, "\n")
-		})(conn)
 	}
 	return nil
+}
+
+func (s *Server) Serve(listener net.Listener) error {
+	conn, err := listener.Accept()
+	if err != nil {
+		return err
+	}
+	go (func(conn net.Conn) {
+		req, err := readOcReq(conn)
+		defer conn.Close()
+		defer fmt.Fprintf(conn, "\n")
+		if err != nil {
+			writeErrorResp(msg.BAD_REQUEST, conn)
+			return
+		}
+
+		// TODO(ortutay): implement additional request validation
+		// - validate sigs
+		// - check nonce
+		// - check service available
+		// - check method available
+
+		if ok, status := s.IsAllowedByPolicy(req); !ok {
+			fmt.Printf("not allowed: %v %v\n", ok, status)
+			writeErrorResp(status, conn)
+			return
+		}
+
+		resp, err := s.Handler.Handle(req)
+		if err != nil {
+			writeErrorResp(msg.SERVER_ERROR, conn)
+		} else {
+			writeResp(resp, conn)
+		}
+	})(conn)
+	return nil
+}
+
+func (s *Server) IsAllowedByPolicy(req *msg.OcReq) (bool, msg.OcRespStatus) {
+	fmt.Printf("is allowed? %v\n", s)
+	for _, policy := range s.Policies {
+		fmt.Printf("check against policy: %v\n", policy)
+		switch policy.Cmd {
+		case ALLOW:
+			continue
+		case DENY:
+			return false, msg.ACCESS_DENIED
+		case MIN_FEE:
+			min := policy.Args[0].(msg.PaymentValue)
+			fmt.Printf("min fee: %v, pt: %v\n", min, req.PaymentType)
+			if req.PaymentType != msg.ATTACHED {
+				return false, msg.PAYMENT_REQUIRED
+			}
+
+			// TODO(ortutay): implement
+			return false, msg.SERVER_ERROR
+		}
+	}
+	return true, msg.OK
 }
 
 func readOcReq(conn net.Conn) (*msg.OcReq, error) {

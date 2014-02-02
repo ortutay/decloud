@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/conformal/btcjson"
 	"io/ioutil"
-	"oc/buyer/client"
+	"oc/services/calc"
 	"oc/util"
 	"os"
 	"testing"
@@ -54,14 +54,14 @@ func TestStoreAndLoadOcCred(t *testing.T) {
 }
 
 func TestSignRequest(t *testing.T) {
-	ocReq := client.NewCalcReq([]string{"1 2 +"})
+	ocReq := calc.NewCalcReq([]string{"1 2 +"})
 
 	ocCred, err := NewOcCred()
 	if err != nil {
 		t.Errorf("%v", err)
 	}
 
-	err = ocCred.SignOcReq(&ocReq)
+	err = ocCred.SignOcReq(ocReq)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
@@ -70,7 +70,7 @@ func TestSignRequest(t *testing.T) {
 			len(ocReq.NodeId), len(ocReq.Sig))
 	}
 
-	ok, err := VerifyOcReqSig(&ocReq, nil)
+	ok, err := VerifyOcReqSig(ocReq, nil)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
@@ -80,36 +80,36 @@ func TestSignRequest(t *testing.T) {
 }
 
 func TestInvalidOcSignatureFails(t *testing.T) {
-	ocReq := client.NewCalcReq([]string{"1 2 +"})
+	ocReq := calc.NewCalcReq([]string{"1 2 +"})
 
 	ocCred, err := NewOcCred()
 	if err != nil {
 		t.Errorf("%v", err)
 	}
 
-	err = ocCred.SignOcReq(&ocReq)
+	err = ocCred.SignOcReq(ocReq)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
 
 	originalSig := ocReq.Sig[0]
 	ocReq.Sig[0] = originalSig[0:len(originalSig)-2] + "1"
-	if ok, _ := VerifyOcReqSig(&ocReq, nil); ok {
+	if ok, _ := VerifyOcReqSig(ocReq, nil); ok {
 		t.Errorf("invalid sig %v verified", ocReq.Sig[0])
 	}
 
 	ocReq.Sig[0] = originalSig + "x"
-	if ok, _ := VerifyOcReqSig(&ocReq, nil); ok {
+	if ok, _ := VerifyOcReqSig(ocReq, nil); ok {
 		t.Errorf("invalid sig %v verified", ocReq.Sig[0])
 	}
 
 	originalNodeId := ocReq.NodeId[0]
 	ocReq.NodeId[0] = originalNodeId[1:] + "1"
-	if ok, _ := VerifyOcReqSig(&ocReq, nil); ok {
+	if ok, _ := VerifyOcReqSig(ocReq, nil); ok {
 		t.Errorf("invalid node id %v verified", ocReq.NodeId[0])
 	}
 
-	if ok, _ := VerifyOcReqSig(&ocReq, nil); ok {
+	if ok, _ := VerifyOcReqSig(ocReq, nil); ok {
 		t.Errorf("invalid node id %v verified", ocReq.NodeId[0])
 	}
 }
@@ -155,7 +155,7 @@ func printBitcoindExpected() {
 
 func TestBtcCredSign(t *testing.T) {
 	printBitcoindExpected()
-	ocReq := client.NewCalcReq([]string{"1 2 +"})
+	ocReq := calc.NewCalcReq([]string{"1 2 +"})
 
 	conf, err := util.LoadBitcoindConf("")
 	if err != nil {
@@ -174,12 +174,12 @@ func TestBtcCredSign(t *testing.T) {
 		Addr: addr,
 	}
 
-	err = btcCred.SignOcReq(&ocReq, conf)
+	err = btcCred.SignOcReq(ocReq, conf)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
 
-	ok, err := VerifyOcReqSig(&ocReq, conf)
+	ok, err := VerifyOcReqSig(ocReq, conf)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
@@ -190,7 +190,7 @@ func TestBtcCredSign(t *testing.T) {
 
 func TestInvalidBtcSignatureFails(t *testing.T) {
 	printBitcoindExpected()
-	ocReq := client.NewCalcReq([]string{"1 2 +"})
+	ocReq := calc.NewCalcReq([]string{"1 2 +"})
 
 	conf, err := util.LoadBitcoindConf("")
 	if err != nil {
@@ -209,14 +209,14 @@ func TestInvalidBtcSignatureFails(t *testing.T) {
 		Addr: addr,
 	}
 
-	err = btcCred.SignOcReq(&ocReq, conf)
+	err = btcCred.SignOcReq(ocReq, conf)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
 
 	originalSig := ocReq.Sig[0]
 	ocReq.Sig[0] = originalSig[0:len(originalSig)-2] + "1"
-	ok, err := VerifyOcReqSig(&ocReq, conf)
+	ok, err := VerifyOcReqSig(ocReq, conf)
 	if ok {
 		t.Errorf("invalid sig %v verified", ocReq.Sig[0])
 	}
@@ -226,7 +226,7 @@ func TestInvalidBtcSignatureFails(t *testing.T) {
 
 	originalNodeId := ocReq.NodeId[0]
 	ocReq.NodeId[0] = originalNodeId[0:len(originalNodeId)-2] + "1"
-	ok, err = VerifyOcReqSig(&ocReq, conf)
+	ok, err = VerifyOcReqSig(ocReq, conf)
 	if ok {
 		t.Errorf("invalid node id %v verified", ocReq.NodeId[0])
 	}

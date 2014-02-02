@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
+	"io"
 )
 
 var _ = fmt.Printf
@@ -19,11 +20,46 @@ type OcReq struct {
 	Service     string
 	Method      string
 	Args        []string
-	PaymentType string
-	PaymentTxn  string
+	PaymentType PaymentType
+	PaymentTxn  string // TODO(ortutay): replace with PaymentValue
 	Body        []byte
 }
 
+type PaymentType string
+
+const (
+	NONE     PaymentType = "none"
+	ATTACHED             = "attached"
+	DEFER                = "defer"
+)
+
+type Currency string
+
+const (
+	BTC Currency = "BTC"
+	USD          = "USD"
+)
+
+type PaymentValue struct {
+	Amount   float64
+	Currency Currency
+}
+
+func (r *OcReq) WriteSignablePortion(w io.Writer) error {
+	w.Write([]byte(r.Nonce))
+	w.Write([]byte(r.Service))
+	w.Write([]byte(r.Method))
+	for _, arg := range r.Args {
+		w.Write([]byte(arg))
+	}
+	var s = string(r.PaymentType)
+	w.Write([]byte(s))
+	w.Write([]byte(r.PaymentTxn))
+	w.Write(r.Body)
+	return nil
+}
+
+// TODO(ortutay): WriteEncoded(w io.Writer)
 func (r *OcReq) Encode() ([]byte, error) {
 	return encode(r)
 }
@@ -37,6 +73,8 @@ type OcRespStatus string
 const (
 	OK OcRespStatus = "ok"
 
+	ACCESS_DENIED = "access-denied"
+
 	CLIENT_ERROR        = "client-error"
 	BAD_REQUEST         = CLIENT_ERROR + "/bad-request"
 	INVALID_SIGNATURE   = CLIENT_ERROR + "/invalid-signature"
@@ -47,6 +85,7 @@ const (
 
 	REQUEST_DECLINED = "request-declined"
 	REFRESH_NONCE    = REQUEST_DECLINED + "/refresh-nonce"
+	PAYMENT_REQUIRED = REQUEST_DECLINED + "/payment-required"
 	PAYMENT_DECLINED = REQUEST_DECLINED + "/payment-declined"
 	TOO_LOW          = PAYMENT_DECLINED + "/too-low"
 	NO_DEFER         = PAYMENT_DECLINED + "/no-defer"

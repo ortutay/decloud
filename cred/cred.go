@@ -113,15 +113,7 @@ func NewOcCredLoadFromFile(filename string) (*OcCred, error) {
 
 func getReqSigDataHash(req *msg.OcReq) ([]byte, error) {
 	var buf bytes.Buffer
-	buf.WriteString(req.Nonce)
-	buf.WriteString(req.Service)
-	buf.WriteString(req.Method)
-	for _, arg := range req.Args {
-		buf.WriteString(arg)
-	}
-	buf.WriteString(req.PaymentType)
-	buf.WriteString(req.PaymentTxn)
-	buf.Write(req.Body)
+	req.WriteSignablePortion(&buf)
 
 	hasher := sha256.New()
 	_, err := hasher.Write(buf.Bytes())
@@ -174,7 +166,7 @@ func VerifyOcReqSig(req *msg.OcReq, conf *util.BitcoindConf) (bool, error) {
 		fmt.Printf("verify %v %v\n", nodeId, sig)
 
 		switch nodeId[0] {
-		case 'd':
+		case OC_ID_PREFIX:
 			ok := verifyOcSig(h, nodeId, sig)
 			if !ok {
 				return false, nil
@@ -202,7 +194,7 @@ func VerifyOcReqSig(req *msg.OcReq, conf *util.BitcoindConf) (bool, error) {
 func verifyOcSig(reqHash []byte, nodeId string, sig string) bool {
 	nodeIdReader := strings.NewReader(nodeId)
 	var x, y, r, s big.Int
-	n, err := fmt.Fscanf(nodeIdReader, "d%x,%x", &x, &y)
+	n, err := fmt.Fscanf(nodeIdReader, string(OC_ID_PREFIX)+"%x,%x", &x, &y)
 	if err != nil {
 		return false
 	}
