@@ -161,7 +161,7 @@ Decloud servers handle an incoming request in the following fashion:
 * Access controls, reputation, payment
 	* Based on credentials, do we grant access?
 	* Based on reputation, do we serve this request?
-	* Based on payment, do we serve this requset?
+	* Based on payment, do we serve this request?
 * Pass of to service
 
 Decloud clients send requests, and handle responses, in the following fashion:
@@ -207,6 +207,8 @@ The following policy commands are standard across all services:
 * **deny**
 * **min-fee**
 * **rate-limit**: limit the number of queries per second allowed
+* To be determined: policy commands for handling defered payments
+* To be determined: additional policy commands
 
 Service and method specific configuration may also be supported.
 
