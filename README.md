@@ -184,23 +184,41 @@ Decloud clients send requests, and handle responses, in the following fashion:
 
 A decloud server can choose to run any number of services.
 
+#### Standard method calls
+
 Decloud services provide the following standard method calls:
 
-* **service.info**: to be determined, but probably version information
+* **service.info**: version information
 * **service.methods**: will provide a list of available methods
 * **service.quote(method_name, units_of_service)**: cost of a method call in some unit. The unit of cost is determined by each service, and may have multiple dimensions (eg. space and duration for storage, or CPU hours and RAM for computation)
 
-To be determined: 
+#### Policies
+
+Decloud services can be configured to follow policies. Policies exist in the following scopes:
+
+* **global** policies: apply to everything
+* **service** policies: apply only to specific services
+* **method** policies: apply only to specific methods
+* **credential** policies: apply only to specific identity credentials
+
+The following policy commands are standard across all services:
+
+* **allow**
+* **deny**
+* **min-fee**
+* **rate-limit**: limit the number of queries per second allowed
+
+Service and method specific configuration may also be supported.
+
+#### To be determined
 
 * Namespacing
 
-#### Standard services
+### Core services
 
 The following standard services are to be incldued by default in the decloud server:
 
-* **info**: to be determined, but probably client name and version number
-* **peers**: share known peers
-	* **peers.list**: list known peers
-	* **peers.find(id)**: returns IP address of peer with that id, if known
+* **info**: basic information about a node
+* **peers**: share information about peers
 * **repuation**: share my reputation data
 * **market**: share my knowledge of market prices
