@@ -45,6 +45,7 @@ type PaymentValue struct {
 	Amount   float64
 	Currency Currency
 }
+
 func (pv *PaymentValue) ToString() string {
 	// TODO(ortutay): figure out real wire format
 	b, err := json.Marshal(pv)
@@ -58,7 +59,7 @@ func FromString(str string) (*PaymentValue, error) {
 	var pv PaymentValue
 	err := json.Unmarshal([]byte(str), &pv)
 	if err != nil {
-	 	return nil, fmt.Errorf("couldn't create calc.Work from %v", str)
+		return nil, fmt.Errorf("couldn't create calc.Work from %v", str)
 	} else {
 		return &pv, nil
 	}

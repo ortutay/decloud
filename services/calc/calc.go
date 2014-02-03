@@ -1,57 +1,58 @@
 package calc
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"oc/msg"
 	"strconv"
 	"strings"
-	"encoding/json"
 )
 
 var _ = fmt.Printf
 
 const (
-	CALC = "calc"
+	CALC      = "calc"
 	CALCULATE = "calculate"
-	QUOTE = "quote"
+	QUOTE     = "quote"
 )
 
 func NewQuoteReq(work *Work) *msg.OcReq {
 	workStr := work.ToString()
 	msg := msg.OcReq{
-		NodeId:   []string{},
-		Sig:     []string{},
-		Nonce:    "",
-		Service:   CALC,
-		Method:   QUOTE,
-		Args:    []string{workStr},
+		NodeId:      []string{},
+		Sig:         []string{},
+		Nonce:       "",
+		Service:     CALC,
+		Method:      QUOTE,
+		Args:        []string{workStr},
 		PaymentType: "",
-		PaymentTxn: "",
-		Body:    []byte(""),
+		PaymentTxn:  "",
+		Body:        []byte(""),
 	}
 	return &msg
 }
 
 func NewCalcReq(queries []string) *msg.OcReq {
 	msg := msg.OcReq{
-		NodeId:   []string{},
-		Sig:     []string{},
-		Nonce:    "",
-		Service:   CALC,
-		Method:   CALCULATE,
-		Args:    queries,
+		NodeId:      []string{},
+		Sig:         []string{},
+		Nonce:       "",
+		Service:     CALC,
+		Method:      CALCULATE,
+		Args:        queries,
 		PaymentType: "",
-		PaymentTxn: "",
-		Body:    []byte(""),
+		PaymentTxn:  "",
+		Body:        []byte(""),
 	}
 	return &msg
 }
 
 type Work struct {
 	NumQueries int
-	NumBytes int
+	NumBytes   int
 }
+
 func (w *Work) ToString() string {
 	// TODO(ortutay): figure out real wire format
 	b, err := json.Marshal(w)
@@ -65,7 +66,7 @@ func FromString(str string) (*Work, error) {
 	var work Work
 	err := json.Unmarshal([]byte(str), &work)
 	if err != nil {
-	 	return nil, fmt.Errorf("couldn't create calc.Work from %v", str)
+		return nil, fmt.Errorf("couldn't create calc.Work from %v", str)
 	} else {
 		return &work, nil
 	}
