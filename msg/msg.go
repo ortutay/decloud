@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -43,6 +44,24 @@ const (
 type PaymentValue struct {
 	Amount   float64
 	Currency Currency
+}
+func (pv *PaymentValue) ToString() string {
+	// TODO(ortutay): figure out real wire format
+	b, err := json.Marshal(pv)
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
+}
+func FromString(str string) (*PaymentValue, error) {
+	// TODO(ortutay): figure out real wire format
+	var pv PaymentValue
+	err := json.Unmarshal([]byte(str), &pv)
+	if err != nil {
+	 	return nil, fmt.Errorf("couldn't create calc.Work from %v", str)
+	} else {
+		return &pv, nil
+	}
 }
 
 func (r *OcReq) WriteSignablePortion(w io.Writer) error {

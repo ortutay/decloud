@@ -7,6 +7,7 @@ import (
 	"oc/msg"
 	"oc/services/calc"
 	"testing"
+	"log"
 )
 
 var _ = fmt.Printf
@@ -35,19 +36,19 @@ func TestRoundTrip(t *testing.T) {
 	listener, err := net.Listen("tcp", s.Addr)
 	defer listener.Close()
 	if err != nil {
-		t.Errorf(err.Error())
+		log.Fatal(err)
 	}
 	go s.Serve(listener)
 
 	c, err := newClient()
 	if err != nil {
-		t.Errorf(err.Error())
+		log.Fatal(err)
 	}
 
 	req := calc.NewCalcReq([]string{"1 2 +"})
 	resp, err := c.SendRequest(addr, req)
 	if err != nil {
-		t.Errorf(err.Error())
+		log.Fatal(err)
 	}
 
 	fmt.Printf("resp: %v\nbody: %v\n", resp, string(resp.Body))
@@ -75,17 +76,49 @@ func TestPaymentRequired(t *testing.T) {
 	listener, err := net.Listen("tcp", s.Addr)
 	defer listener.Close()
 	if err != nil {
-		t.Errorf(err.Error())
+		log.Fatal(err)
 	}
 	go s.Serve(listener)
 
 	c, err := newClient()
 	if err != nil {
-		t.Errorf(err.Error())
+		log.Fatal(err)
 	}
 	req := calc.NewCalcReq([]string{"1 2 +"})
 	resp, err := c.SendRequest(addr, req)
 	if resp.Status != msg.PAYMENT_REQUIRED {
 		t.Errorf("expected PAYMENT_REQUIRED, but got: %v\n", resp.Status)
 	}
+}
+
+func TestPaymentRoundTrip(t *testing.T) {
+	addr := ":9443"
+	handler := calc.CalcService{}
+	s := Server{
+		Cred:    &cred.Cred{},
+		Addr:    addr,
+		Handler: handler,
+	}
+	listener, err := net.Listen("tcp", s.Addr)
+	defer listener.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	go s.Serve(listener)
+
+	c, err := newClient()
+	if err != nil {
+		log.Fatal(err)
+	}
+	calcReq := calc.NewCalcReq([]string{"1 2 +"})
+	work, err := calc.Measure(calcReq)
+	if err != nil {
+		log.Fatal(err)
+	}
+	quoteReq := calc.NewQuoteReq(work)
+	resp, err := c.SendRequest(addr, quoteReq)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("resp: %v\nbody: %v\n", resp, string(resp.Body))
 }
