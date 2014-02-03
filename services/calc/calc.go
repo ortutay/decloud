@@ -10,22 +10,28 @@ import (
 
 var _ = fmt.Printf
 
+const (
+	CALC = "calc"
+	CALCULATE = "calculate"
+)
+
+func NewQuoteReq(work *Work) *msg.OcReq {
+	return nil
+}
+
 func NewCalcReq(queries []string) *msg.OcReq {
 	msg := msg.OcReq{
 		NodeId:   []string{},
 		Sig:     []string{},
 		Nonce:    "",
-		Service:   "calc",
-		Method:   "calculate",
+		Service:   CALC,
+		Method:   CALCULATE,
 		Args:    queries,
 		PaymentType: "",
 		PaymentTxn: "",
 		Body:    []byte(""),
 	}
 	return &msg
-}
-
-type CalcService struct {
 }
 
 type Work struct {
@@ -35,14 +41,29 @@ type Work struct {
 // TODO(ortutay): standard quotable units
 
 func Measure(req *msg.OcReq) (*Work, error) {
-	return nil, nil
+	if req.Service != CALC {
+		return nil, fmt.Errorf("expected %s service, got %s", CALC, req.Service)
+	}
+	if req.Method != CALCULATE {
+		return nil, fmt.Errorf("can only measure work for %s method, got %s",
+			CALCULATE, req.Method)
+	}
+	var work Work
+	for _, q := range req.Args {
+		work.NumBytes += len(q)
+		work.NumQueries++
+	}
+	return &work, nil
+}
+
+type CalcService struct {
 }
 
 func (cs *CalcService) Handle(req *msg.OcReq) (*msg.OcResp, error) {
 	println(fmt.Sprintf("calc got request: %v", req))
 
 	methods := make(map[string]func(*msg.OcReq) (*msg.OcResp, error))
-	methods["calculate"] = cs.Calculate
+	methods[CALCULATE] = cs.Calculate
 
 	if method, ok := methods[req.Method]; ok {
 		return method(req)

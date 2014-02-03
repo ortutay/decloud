@@ -8,6 +8,20 @@ import (
 
 var _ = fmt.Printf
 
+func TestMeasure(t *testing.T) {
+	req := NewCalcReq([]string{"1 2 +"})
+	work, err := Measure(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if work.NumQueries != 1 {
+		t.Errorf("got %v, expected %v\n", work.NumQueries, 1)
+	}
+	if work.NumBytes != 5 {
+		t.Errorf("got %v, expected %v\n", work.NumBytes, 5)
+	}
+}
+
 func TestCalculate_Simple(t *testing.T) {
 	cs := CalcService{}
 	req := NewCalcReq([]string{"1 2 +"})
