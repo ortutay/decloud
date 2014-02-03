@@ -20,6 +20,12 @@ Second, it provides a basis for scarce identity, which can be used to mitigate t
 
 The decentralized cloud below has two components. First, there is the OpenCloud protocol, which can be thought of as an RPC protocol with payment. Second, there is the decloud client/server, which the first (and, for the immediate future, only) implementation of the OpenCloud protocol.
 
+## Goal
+
+In the long run, the goal is to provide an open cloud platform that is an alternative to proprietary cloud services.
+
+In the short run, a more limited goal is useful. That goal is to provide a cheap, decentralized storage system that you can pay for with bitcoin. It should be less expensive than Dropbox, but provide comparable availability and throughput. This goal can be used as a measuring stick to evaluate how successful the decloud project is.
+
 ## OpenCloud protocol
 
 The OpenCloud protocol defines a way for a client to make an RPC request to a server, and attach a payment, or promise of payment, to that request.
@@ -124,9 +130,11 @@ Reputation encompasses:
 * What others think of you
 * What others think of others
 
-For **what you think of others**: when you interace with any node in the OpenCloud system, that node will make promises and then fulfill (or not) those promises. Your opinion of the other node is how well they did (or did not) fulfill their promises.
+For **what you think of others**: when you interact with any node in the OpenCloud system, that node will make promises and then fulfill (or not) those promises. Your opinion of the other node is how well they did (or did not) fulfill their promises.
 
-In the case of a server, you will store deferred payment promises made by clients, and match that against the actual payment received. The "defer-threshold" field is helpful in evaluating an honest client who's payment is not yet due, vs. a cheating client. In the case of a client, you will store promises of a level of service (eg. storing data for 1 day, making it available at 10MB/s) and compare it to the actual service received (eg. data was stored for 1 day, actual throughput was 8MB/s).
+In the case of a server, you will store deferred payment promises made by clients, and match that against the actual payment received. The "defer-threshold" field is helpful in evaluating an honest client who's payment is not yet due, vs. a cheating client.
+
+In the case of a client, you will store promises of a level of service (eg. storing data for 1 day, making it available at 10MB/s) and compare it to the actual service received (eg. data was stored for 1 day, actual throughput was 8MB/s).
 
 For **what others think of you**: much like you are keeping records on other nodes, they are also keeping records on you.
 
@@ -199,7 +207,7 @@ Additionally, every service defines pricing and service units. In reputation log
 <a name="policy"></a>
 #### Policies 
 
-Decloud services can be configured to follow policies. These can be thought of a pricing strategies, or client selection strategies. To use a real world example: a high class bar may decide to be exclusive, but also allo rich clients to run up tabs of $1000+, while a working class bar may decide to allow anyone in, but only allow tabs up to $100.
+Decloud services can be configured to follow policies. These can be thought of a pricing strategies, or client selection strategies. To use a real world example: a high class bar may decide to be exclusive, but also also rich clients to run up tabs of $1000+, while a working class bar may decide to allow anyone in, but only allow tabs up to $100.
 
 Policies exist in the following scopes:
 
@@ -226,12 +234,22 @@ Service and method specific configuration may also be supported.
 
 ### Core services
 
-The following standard services are to be incldued by default in the decloud server:
+Possibly alternative names: "meta services" or "system services." These are services that are not inherently useful, but support the decloud system, and are used by actually useful services.
 
 * **info**: basic information about a node
 * **peers**: share information about peers
 * **repuation**: share my reputation data
 * **market**: share my knowledge of market prices
+
+Additional details to be determined.
+
+### Application services
+
+The initial application service will be storage.
+
+Following application services will be a distributed file system, and computation.
+
+Additional details to be determined.
 
 ## Decloud - Client
 
