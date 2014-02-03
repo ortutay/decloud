@@ -28,7 +28,7 @@ In the short run, a more limited goal is useful. That goal is to provide a cheap
 
 ## OpenCloud protocol
 
-The OpenCloud protocol defines a way for a client to make an RPC request to a server, and attach a payment, or promise of payment, to that request.
+The OpenCloud protocol is an RPC protocol with payments support. To use an analogy, it is like HTTP, and the decloud client/server described later are like Apache/wget.
 
 ### OpenCloud Requests
 
