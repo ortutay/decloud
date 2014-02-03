@@ -3,16 +3,15 @@ package calc
 import (
 	"fmt"
 	"log"
-	"oc/buyer/client"
-	"oc/seller/calc"
 	"testing"
 )
 
 var _ = fmt.Printf
 
-func TestHandleCalculate_Simple(t *testing.T) {
-	req := client.NewCalcReq([]string{"1 2 +"})
-	resp, err := calc.HandleCalculate(&req)
+func TestCalculate_Simple(t *testing.T) {
+	cs := CalcService{}
+	req := NewCalcReq([]string{"1 2 +"})
+	resp, err := cs.Calculate(req)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -22,14 +21,15 @@ func TestHandleCalculate_Simple(t *testing.T) {
 	}
 }
 
-func TestHandleCalculate_Complex(t *testing.T) {
+func TestCalculate_Complex(t *testing.T) {
+	cs := CalcService{}
 	args := []string{
 		"1 2 +",
 		"1 2 /",
 		"3 4.5 + 7 - 8.123 *",
 		"5 1 2 + 4 * + 3 -"}
-	req := client.NewCalcReq(args)
-	resp, err := calc.HandleCalculate(&req)
+	req := NewCalcReq(args)
+	resp, err := cs.Calculate(req)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -40,9 +40,10 @@ func TestHandleCalculate_Complex(t *testing.T) {
 	}
 }
 
-func TestHandleCalculate_InvalidExpr(t *testing.T) {
-	req := client.NewCalcReq([]string{"1 2 + 3"})
-	_, err := calc.HandleCalculate(&req)
+func TestCalculate_InvalidExpr(t *testing.T) {
+	cs := CalcService{}
+	req := NewCalcReq([]string{"1 2 + 3"})
+	_, err := cs.Calculate(req)
 	if err == nil || err.Error() != "invalid expression" {
 		log.Fatal(err)
 	}

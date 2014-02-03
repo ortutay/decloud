@@ -12,15 +12,15 @@ var _ = fmt.Printf
 
 func NewCalcReq(queries []string) *msg.OcReq {
 	msg := msg.OcReq{
-		NodeId:      []string{},
-		Sig:         []string{},
-		Nonce:       "",
-		Service:     "calc",
-		Method:      "calculate",
-		Args:        queries,
+		NodeId:   []string{},
+		Sig:     []string{},
+		Nonce:    "",
+		Service:   "calc",
+		Method:   "calculate",
+		Args:    queries,
 		PaymentType: "",
-		PaymentTxn:  "",
-		Body:        []byte(""),
+		PaymentTxn: "",
+		Body:    []byte(""),
 	}
 	return &msg
 }
@@ -28,18 +28,42 @@ func NewCalcReq(queries []string) *msg.OcReq {
 type CalcService struct {
 }
 
-func (cs CalcService) Handle(req *msg.OcReq) (*msg.OcResp, error) {
-	println(fmt.Sprintf("calc got request: %v", req))
-	switch req.Method {
-	case "calculate":
-		return cs.HandleCalculate(req)
-	default:
-		return nil, errors.New("unhandled method")
-	}
+type Work struct {
+	NumBytes int
+	NumQueries int
+}
+// TODO(ortutay): standard quotable units
+
+func Measure(req *msg.OcReq) (*Work, error) {
 	return nil, nil
 }
 
-func (cs CalcService) HandleCalculate(req *msg.OcReq) (*msg.OcResp, error) {
+func (cs *CalcService) Handle(req *msg.OcReq) (*msg.OcResp, error) {
+	println(fmt.Sprintf("calc got request: %v", req))
+
+	methods := make(map[string]func(*msg.OcReq) (*msg.OcResp, error))
+	methods["calculate"] = cs.Calculate
+
+	if method, ok := methods[req.Method]; ok {
+		return method(req)
+	} else {
+		return nil, errors.New("unhandled method")
+	}
+}
+
+func (cs *CalcService) Info(req *msg.OcReq) (*msg.OcResp, error) {
+	return nil, nil
+}
+
+func (cs *CalcService) Quote(req *msg.OcReq) (*msg.OcResp, error) {
+	return nil, nil
+}
+
+func (cs *CalcService) Methods(req *msg.OcReq) (*msg.OcResp, error) {
+	return nil, nil
+}
+
+func (cs *CalcService) Calculate(req *msg.OcReq) (*msg.OcResp, error) {
 	var results []string
 	for _, q := range req.Args {
 		tokens := strings.Split(q, " ")
