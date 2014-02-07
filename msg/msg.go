@@ -54,12 +54,13 @@ func (pv *PaymentValue) ToString() string {
 	}
 	return string(b)
 }
-func FromString(str string) (*PaymentValue, error) {
+
+func NewPaymentValue(str string) (*PaymentValue, error) {
 	// TODO(ortutay): figure out real wire format
 	var pv PaymentValue
 	err := json.Unmarshal([]byte(str), &pv)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't create calc.Work from %v", str)
+		return nil, fmt.Errorf("couldn't create PaymentValue from %v", str)
 	} else {
 		return &pv, nil
 	}
@@ -105,6 +106,7 @@ const (
 
 	REQUEST_DECLINED = "request-declined"
 	REFRESH_NONCE    = REQUEST_DECLINED + "/refresh-nonce"
+	CURRENCY_UNSUPPORTED    = REQUEST_DECLINED + "/currency-unsupported"
 	PAYMENT_REQUIRED = REQUEST_DECLINED + "/payment-required"
 	PAYMENT_DECLINED = REQUEST_DECLINED + "/payment-declined"
 	TOO_LOW          = PAYMENT_DECLINED + "/too-low"

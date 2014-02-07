@@ -50,6 +50,7 @@ func (c *Client) SendRequest(addr string, req *msg.OcReq) (*msg.OcResp, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error while reading: %v", err.Error())
 	}
+	println("got resp")
 
 	resp, err := msg.DecodeResp(b64resp)
 	if err != nil {
@@ -61,6 +62,18 @@ func (c *Client) SendRequest(addr string, req *msg.OcReq) (*msg.OcResp, error) {
 
 type Handler interface {
 	Handle(*msg.OcReq) (*msg.OcResp, error)
+}
+
+type ServiceMux struct {
+	Services map[string]Handler
+}
+
+func (sm *ServiceMux) Handle(req *msg.OcReq) (*msg.OcResp, error) {
+	if service, ok := sm.Services[req.Service]; ok {
+		return service.Handle(req)
+	} else {
+		return msg.NewRespError(msg.SERVICE_UNSUPPORTED), nil
+	}
 }
 
 type Server struct {
@@ -103,7 +116,7 @@ func (s *Server) ListenAndServe() error {
 	for {
 		err := s.Serve(listener)
 		if err != nil {
-			println("error accepting: ", err.Error())
+			fmt.Printf("error accepting: %v", err)
 			continue
 		}
 	}
@@ -142,6 +155,7 @@ func (s *Server) Serve(listener net.Listener) error {
 		} else {
 			writeResp(resp, conn)
 		}
+		return
 	})(conn)
 	return nil
 }
@@ -170,7 +184,9 @@ func (s *Server) IsAllowedByPolicy(req *msg.OcReq) (bool, msg.OcRespStatus) {
 }
 
 func readOcReq(conn net.Conn) (*msg.OcReq, error) {
+	println("read req")
 	b64, err := bufio.NewReader(conn).ReadString('\n')
+	fmt.Printf("did read req %v", b64)
 	if err != nil {
 		return nil, fmt.Errorf("could not read request")
 	}

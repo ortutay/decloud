@@ -27,6 +27,7 @@ func LoadBitcoindConf(filename string) (*BitcoindConf, error) {
 		filename = fmt.Sprintf("%s/.bitcoin/bitcoin.conf", usr.HomeDir)
 	}
 	file, err := os.Open(filename)
+	defer file.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -58,6 +59,7 @@ func GetAppData(filename string) (*os.File, error) {
 	}
 
 	file, err := os.Open(filename)
+	defer file.Close()
 	if err != nil {
 		return nil, err
 	}

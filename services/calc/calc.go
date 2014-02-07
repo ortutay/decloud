@@ -12,7 +12,7 @@ import (
 var _ = fmt.Printf
 
 const (
-	CALC      = "calc"
+	SERVICE_NAME      = "calc"
 	CALCULATE = "calculate"
 	QUOTE     = "quote"
 )
@@ -23,7 +23,7 @@ func NewQuoteReq(work *Work) *msg.OcReq {
 		NodeId:      []string{},
 		Sig:         []string{},
 		Nonce:       "",
-		Service:     CALC,
+		Service:     SERVICE_NAME,
 		Method:      QUOTE,
 		Args:        []string{workStr},
 		PaymentType: "",
@@ -38,7 +38,7 @@ func NewCalcReq(queries []string) *msg.OcReq {
 		NodeId:      []string{},
 		Sig:         []string{},
 		Nonce:       "",
-		Service:     CALC,
+		Service:     SERVICE_NAME,
 		Method:      CALCULATE,
 		Args:        queries,
 		PaymentType: "",
@@ -75,8 +75,9 @@ func FromString(str string) (*Work, error) {
 // TODO(ortutay): standard quotable units
 
 func Measure(req *msg.OcReq) (*Work, error) {
-	if req.Service != CALC {
-		return nil, fmt.Errorf("expected %s service, got %s", CALC, req.Service)
+	if req.Service != SERVICE_NAME {
+		return nil, fmt.Errorf("expected %s service, got %s",
+			SERVICE_NAME, req.Service)
 	}
 	if req.Method != CALCULATE {
 		return nil, fmt.Errorf("can only measure work for %s method, got %s",

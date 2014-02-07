@@ -7,6 +7,7 @@ import (
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/services/calc"
+	"github.com/ortutay/decloud/services/info"
 	"testing"
 )
 
@@ -93,23 +94,30 @@ func TestPaymentRequired(t *testing.T) {
 
 func TestPaymentRoundTrip(t *testing.T) {
 	addr := ":9443"
-	handler := calc.CalcService{}
+	services := make(map[string]Handler)
+	services[calc.SERVICE_NAME] = calc.CalcService{}
+	services[info.SERVICE_NAME] = &info.InfoService{}
+	mux := ServiceMux{
+		Services: services,
+	}
 	s := Server{
 		Cred:    &cred.Cred{},
 		Addr:    addr,
-		Handler: handler,
+		Handler: &mux,
 	}
 	listener, err := net.Listen("tcp", s.Addr)
 	defer listener.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
-	go s.Serve(listener)
 
 	c, err := newClient()
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Quote
+	go s.Serve(listener)
 	calcReq := calc.NewCalcReq([]string{"1 2 +"})
 	work, err := calc.Measure(calcReq)
 	if err != nil {
@@ -117,6 +125,20 @@ func TestPaymentRoundTrip(t *testing.T) {
 	}
 	quoteReq := calc.NewQuoteReq(work)
 	resp, err := c.SendRequest(addr, quoteReq)
+	if err != nil {
+		log.Fatal(err)
+	}
+	pv, err := msg.NewPaymentValue(string(resp.Body))
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("resp: %v\npv: %v\n", resp, pv)
+
+	// Get payment address
+	go s.Serve(listener)
+	payAddrReq := info.NewPaymentAddrReq(msg.BTC)
+	fmt.Printf("req: %v\n", payAddrReq)
+	resp, err = c.SendRequest(addr, payAddrReq)
 	if err != nil {
 		log.Fatal(err)
 	}
