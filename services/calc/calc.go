@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"oc/msg"
+	"github.com/ortutay/decloud/msg"
 	"strconv"
 	"strings"
 )

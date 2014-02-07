@@ -12,10 +12,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/conformal/btcjson"
+	"github.com/ortutay/decloud/msg"
+	"github.com/ortutay/decloud/util"
 	"io"
 	"math/big"
-	"oc/msg"
-	"oc/util"
 	"strings"
 )
 

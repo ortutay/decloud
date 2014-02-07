@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/conformal/btcjson"
+	"github.com/ortutay/decloud/services/calc"
+	"github.com/ortutay/decloud/util"
 	"io/ioutil"
-	"oc/services/calc"
-	"oc/util"
 	"os"
 	"testing"
 )
