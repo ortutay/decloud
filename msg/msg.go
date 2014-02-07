@@ -12,19 +12,6 @@ import (
 
 var _ = fmt.Printf
 
-// For now, all fields are string or []byte.
-// TODO(ortutay): add types for these fields
-type OcReq struct {
-	NodeId      []string
-	Sig         []string
-	Nonce       string
-	Service     string
-	Method      string
-	Args        []string
-	PaymentType PaymentType
-	PaymentTxn  string // TODO(ortutay): replace with PaymentValue
-	Body        []byte
-}
 
 type PaymentType string
 
@@ -33,6 +20,31 @@ const (
 	ATTACHED             = "attached"
 	DEFER                = "defer"
 )
+
+type PaymentAddr struct {
+	Currency Currency
+	Addr     string
+}
+
+func (pa *PaymentAddr) ToString() string {
+	// TODO(ortutay): figure out real wire format
+	b, err := json.Marshal(pa)
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
+}
+
+func NewPaymentAddr(str string) (*PaymentAddr, error) {
+	// TODO(ortutay): figure out real wire format
+	var pa PaymentAddr
+	err := json.Unmarshal([]byte(str), &pa)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't create PaymentAddr from %v", str)
+	} else {
+		return &pa, nil
+	}
+}
 
 type Currency string
 
@@ -66,6 +78,21 @@ func NewPaymentValue(str string) (*PaymentValue, error) {
 	}
 }
 
+// For now, all fields are string or []byte.
+// TODO(ortutay): add types for these fields
+type OcReq struct {
+	NodeId      []string
+	Sig         []string
+	Nonce       string
+	Service     string
+	Method      string
+	Args        []string
+	PaymentType PaymentType
+	PaymentValue *PaymentValue
+	PaymentTxn  string
+	Body        []byte
+}
+
 func (r *OcReq) WriteSignablePortion(w io.Writer) error {
 	w.Write([]byte(r.Nonce))
 	w.Write([]byte(r.Service))
@@ -87,6 +114,15 @@ func (r *OcReq) Encode() ([]byte, error) {
 
 func (r *OcReq) IsSigned() bool {
 	return len(r.Sig) > 0
+}
+
+func (r *OcReq) AttachDeferredPayment(pv *PaymentValue) {
+	if r.PaymentType != "" || r.PaymentTxn != "" || r.PaymentValue != nil {
+		panic("expected request with no payment")
+	}
+	pvCopy := PaymentValue(*pv)
+	r.PaymentType = DEFER
+	r.PaymentValue = &pvCopy
 }
 
 type OcRespStatus string

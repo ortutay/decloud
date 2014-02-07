@@ -154,5 +154,15 @@ func TestPaymentRoundTrip(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("resp: %v\nbody: %v\n", resp, string(resp.Body))
+	pa, err := msg.NewPaymentAddr(string(resp.Body))
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("resp: %v\npa: %v\n", resp, pa)
+
+	// Send request with defered payment
+	calcReq.AttachDeferredPayment(pv)
+	fmt.Printf("req with deferred payment: %v\n", calcReq)
+
+	// TODO: submit request, and then fulfill deferred payment
 }

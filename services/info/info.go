@@ -1,7 +1,6 @@
 package info
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/conformal/btcjson"
@@ -14,30 +13,6 @@ const (
 	PAYMENT_ADDR = "paymentAddr"
 )
 
-type PaymentAddr struct {
-	Currency msg.Currency
-	Addr     string
-}
-
-func (pa *PaymentAddr) ToString() string {
-	// TODO(ortutay): figure out real wire format
-	b, err := json.Marshal(pa)
-	if err != nil {
-		panic(err)
-	}
-	return string(b)
-}
-
-func NewPaymentAddr(str string) (*PaymentAddr, error) {
-	// TODO(ortutay): figure out real wire format
-	var pa PaymentAddr
-	err := json.Unmarshal([]byte(str), &pa)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't create PaymentAddr from %v", str)
-	} else {
-		return &pa, nil
-	}
-}
 
 func NewPaymentAddrReq(currency msg.Currency) *msg.OcReq {
 	msg := msg.OcReq{
@@ -78,7 +53,7 @@ func (is *InfoService) GetPaymentAddr(req *msg.OcReq) (*msg.OcResp, error) {
 		if err != nil {
 			return msg.NewRespError(msg.SERVER_ERROR), nil
 		}
-		payAddr := PaymentAddr{Currency: msg.BTC, Addr: btcAddr}
+		payAddr := msg.PaymentAddr{Currency: msg.BTC, Addr: btcAddr}
 		return msg.NewRespOk([]byte(payAddr.ToString())), nil
 	default:
 		return msg.NewRespError(msg.CURRENCY_UNSUPPORTED), nil
