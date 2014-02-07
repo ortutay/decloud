@@ -12,9 +12,9 @@ import (
 var _ = fmt.Printf
 
 const (
-	SERVICE_NAME      = "calc"
-	CALCULATE = "calculate"
-	QUOTE     = "quote"
+	SERVICE_NAME = "calc"
+	CALCULATE    = "calculate"
+	QUOTE        = "quote"
 )
 
 func NewQuoteReq(work *Work) *msg.OcReq {

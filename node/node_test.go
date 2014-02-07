@@ -2,12 +2,13 @@ package node
 
 import (
 	"fmt"
-	"log"
-	"net"
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/services/calc"
 	"github.com/ortutay/decloud/services/info"
+	"github.com/ortutay/decloud/util"
+	"log"
+	"net"
 	"testing"
 )
 
@@ -24,6 +25,11 @@ func newClient() (*Client, error) {
 		},
 	}
 	return &c, nil
+}
+
+// TODO(ortutay): rm dupe code
+func printBitcoindExpected() {
+	println("Note: bitcoind daemon expected to be running")
 }
 
 func TestRoundTrip(t *testing.T) {
@@ -93,10 +99,16 @@ func TestPaymentRequired(t *testing.T) {
 }
 
 func TestPaymentRoundTrip(t *testing.T) {
+	printBitcoindExpected()
+	conf, err := util.LoadBitcoindConf("")
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+
 	addr := ":9443"
 	services := make(map[string]Handler)
 	services[calc.SERVICE_NAME] = calc.CalcService{}
-	services[info.SERVICE_NAME] = &info.InfoService{}
+	services[info.SERVICE_NAME] = &info.InfoService{BitcoindConf: conf}
 	mux := ServiceMux{
 		Services: services,
 	}

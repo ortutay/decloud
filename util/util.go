@@ -59,7 +59,6 @@ func GetAppData(filename string) (*os.File, error) {
 	}
 
 	file, err := os.Open(filename)
-	defer file.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -74,6 +73,7 @@ func StoreAppData(filename string, data []byte, perm os.FileMode) error {
 	}
 
 	file, err := os.Create(filename)
+	defer file.Close()
 	if err != nil {
 		return err
 	}

@@ -104,13 +104,13 @@ const (
 
 	SERVER_ERROR = "server-error"
 
-	REQUEST_DECLINED = "request-declined"
-	REFRESH_NONCE    = REQUEST_DECLINED + "/refresh-nonce"
-	CURRENCY_UNSUPPORTED    = REQUEST_DECLINED + "/currency-unsupported"
-	PAYMENT_REQUIRED = REQUEST_DECLINED + "/payment-required"
-	PAYMENT_DECLINED = REQUEST_DECLINED + "/payment-declined"
-	TOO_LOW          = PAYMENT_DECLINED + "/too-low"
-	NO_DEFER         = PAYMENT_DECLINED + "/no-defer"
+	REQUEST_DECLINED     = "request-declined"
+	REFRESH_NONCE        = REQUEST_DECLINED + "/refresh-nonce"
+	CURRENCY_UNSUPPORTED = REQUEST_DECLINED + "/currency-unsupported"
+	PAYMENT_REQUIRED     = REQUEST_DECLINED + "/payment-required"
+	PAYMENT_DECLINED     = REQUEST_DECLINED + "/payment-declined"
+	TOO_LOW              = PAYMENT_DECLINED + "/too-low"
+	NO_DEFER             = PAYMENT_DECLINED + "/no-defer"
 )
 
 type OcResp struct {

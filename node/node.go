@@ -3,10 +3,10 @@ package node
 import (
 	"bufio"
 	"fmt"
-	"io"
-	"net"
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
+	"io"
+	"net"
 )
 
 type Client struct {
