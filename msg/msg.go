@@ -12,7 +12,6 @@ import (
 
 var _ = fmt.Printf
 
-
 type PaymentType string
 
 const (
@@ -81,16 +80,16 @@ func NewPaymentValue(str string) (*PaymentValue, error) {
 // For now, all fields are string or []byte.
 // TODO(ortutay): add types for these fields
 type OcReq struct {
-	NodeId      []string
-	Sig         []string
-	Nonce       string
-	Service     string
-	Method      string
-	Args        []string
-	PaymentType PaymentType
+	NodeId       []string
+	Sig          []string
+	Nonce        string
+	Service      string
+	Method       string
+	Args         []string
+	PaymentType  PaymentType
 	PaymentValue *PaymentValue
-	PaymentTxn  string
-	Body        []byte
+	PaymentTxn   string
+	Body         []byte
 }
 
 func (r *OcReq) WriteSignablePortion(w io.Writer) error {

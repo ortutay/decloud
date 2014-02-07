@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/conformal/btcjson"
+	"github.com/ortutay/decloud/conf"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/util"
 )
@@ -12,7 +13,6 @@ const (
 	SERVICE_NAME = "info"
 	PAYMENT_ADDR = "paymentAddr"
 )
-
 
 func NewPaymentAddrReq(currency msg.Currency) *msg.OcReq {
 	msg := msg.OcReq{
@@ -33,7 +33,7 @@ type InfoService struct {
 	BitcoindConf *util.BitcoindConf
 }
 
-func (is *InfoService) Handle(req *msg.OcReq) (*msg.OcResp, error) {
+func (is *InfoService) Handle(req *msg.OcReq, policies *[]conf.Policy) (*msg.OcResp, error) {
 	methods := make(map[string]func(*msg.OcReq) (*msg.OcResp, error))
 	methods[PAYMENT_ADDR] = is.GetPaymentAddr
 

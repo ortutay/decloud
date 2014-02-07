@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/conformal/btcjson"
-	"github.com/ortutay/decloud/services/calc"
+	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/util"
 	"io/ioutil"
 	"os"
@@ -12,6 +12,21 @@ import (
 )
 
 var _ = fmt.Printf
+
+func newReq() *msg.OcReq {
+	msg := msg.OcReq{
+		NodeId:      []string{},
+		Sig:         []string{},
+		Nonce:       "",
+		Service:     "storage",
+		Method:      "get",
+		Args:        []string{"123"},
+		PaymentType: "None",
+		PaymentTxn:  "blob",
+		Body:        []byte(""),
+	}
+	return &msg
+}
 
 func TestNewOcCred(t *testing.T) {
 	_, err := NewOcCred()
@@ -54,7 +69,7 @@ func TestStoreAndLoadOcCred(t *testing.T) {
 }
 
 func TestSignRequest(t *testing.T) {
-	ocReq := calc.NewCalcReq([]string{"1 2 +"})
+	ocReq := newReq()
 
 	ocCred, err := NewOcCred()
 	if err != nil {
@@ -80,8 +95,7 @@ func TestSignRequest(t *testing.T) {
 }
 
 func TestInvalidOcSignatureFails(t *testing.T) {
-	ocReq := calc.NewCalcReq([]string{"1 2 +"})
-
+	ocReq := newReq()
 	ocCred, err := NewOcCred()
 	if err != nil {
 		t.Errorf("%v", err)
@@ -155,12 +169,12 @@ func printBitcoindExpected() {
 
 func TestBtcCredSign(t *testing.T) {
 	printBitcoindExpected()
-	ocReq := calc.NewCalcReq([]string{"1 2 +"})
-
 	conf, err := util.LoadBitcoindConf("")
 	if err != nil {
 		t.Errorf("%v", err)
 	}
+
+	ocReq := newReq()
 
 	addr, err := getAnyBtcAddr(conf)
 	if err != nil {
@@ -190,12 +204,12 @@ func TestBtcCredSign(t *testing.T) {
 
 func TestInvalidBtcSignatureFails(t *testing.T) {
 	printBitcoindExpected()
-	ocReq := calc.NewCalcReq([]string{"1 2 +"})
-
 	conf, err := util.LoadBitcoindConf("")
 	if err != nil {
 		t.Errorf("%v", err)
 	}
+
+	ocReq := newReq()
 
 	addr, err := getAnyBtcAddr(conf)
 	if err != nil {

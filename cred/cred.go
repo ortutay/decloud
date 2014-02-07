@@ -171,7 +171,7 @@ func VerifyOcReqSig(req *msg.OcReq, conf *util.BitcoindConf) (bool, error) {
 			if !ok {
 				return false, nil
 			}
-		case '1', 'm':
+		case '1', 'm', 'n':
 			if conf == nil {
 				return false, errors.New("need bitcoind conf to verify btc cred")
 			}

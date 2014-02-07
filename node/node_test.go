@@ -2,6 +2,7 @@ package node
 
 import (
 	"fmt"
+	"github.com/ortutay/decloud/conf"
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/services/calc"
@@ -72,10 +73,10 @@ func TestPaymentRequired(t *testing.T) {
 		Cred:    &cred.Cred{},
 		Addr:    addr,
 		Handler: handler,
-		Policies: []Policy{
-			Policy{
-				Selector: GLOBAL,
-				Cmd:      MIN_FEE,
+		Policies: []conf.Policy{
+			conf.Policy{
+				Selector: conf.GLOBAL,
+				Cmd:      conf.MIN_FEE,
 				Args:     []interface{}{msg.PaymentValue{1, msg.BTC}},
 			},
 		},
@@ -100,7 +101,7 @@ func TestPaymentRequired(t *testing.T) {
 
 func TestPaymentRoundTrip(t *testing.T) {
 	printBitcoindExpected()
-	conf, err := util.LoadBitcoindConf("")
+	btcConf, err := util.LoadBitcoindConf("")
 	if err != nil {
 		t.Errorf("%v", err)
 	}
@@ -108,7 +109,7 @@ func TestPaymentRoundTrip(t *testing.T) {
 	addr := ":9443"
 	services := make(map[string]Handler)
 	services[calc.SERVICE_NAME] = calc.CalcService{}
-	services[info.SERVICE_NAME] = &info.InfoService{BitcoindConf: conf}
+	services[info.SERVICE_NAME] = &info.InfoService{BitcoindConf: btcConf}
 	mux := ServiceMux{
 		Services: services,
 	}
@@ -116,6 +117,13 @@ func TestPaymentRoundTrip(t *testing.T) {
 		Cred:    &cred.Cred{},
 		Addr:    addr,
 		Handler: &mux,
+		Policies: []conf.Policy{
+			conf.Policy{
+				Selector: conf.GLOBAL,
+				Cmd:      conf.MIN_FEE,
+				Args:     []interface{}{msg.PaymentValue{1, msg.BTC}},
+			},
+		},
 	}
 	listener, err := net.Listen("tcp", s.Addr)
 	defer listener.Close()

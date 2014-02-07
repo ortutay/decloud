@@ -3,6 +3,7 @@ package node
 import (
 	"bufio"
 	"fmt"
+	"github.com/ortutay/decloud/conf"
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
 	"io"
@@ -61,16 +62,16 @@ func (c *Client) SendRequest(addr string, req *msg.OcReq) (*msg.OcResp, error) {
 }
 
 type Handler interface {
-	Handle(*msg.OcReq) (*msg.OcResp, error)
+	Handle(*msg.OcReq, *[]conf.Policy) (*msg.OcResp, error)
 }
 
 type ServiceMux struct {
 	Services map[string]Handler
 }
 
-func (sm *ServiceMux) Handle(req *msg.OcReq) (*msg.OcResp, error) {
+func (sm *ServiceMux) Handle(req *msg.OcReq, policies *[]conf.Policy) (*msg.OcResp, error) {
 	if service, ok := sm.Services[req.Service]; ok {
-		return service.Handle(req)
+		return service.Handle(req, policies)
 	} else {
 		return msg.NewRespError(msg.SERVICE_UNSUPPORTED), nil
 	}
@@ -79,31 +80,8 @@ func (sm *ServiceMux) Handle(req *msg.OcReq) (*msg.OcResp, error) {
 type Server struct {
 	Cred     *cred.Cred
 	Addr     string
-	Policies []Policy
+	Policies []conf.Policy
 	Handler  Handler
-}
-
-type PolicyCmd string
-
-const (
-	ALLOW   PolicyCmd = "allow"
-	DENY              = "deny"
-	MIN_FEE           = "min-fee"
-	// TODO(ortutay): add rate-limit
-	// TODO(ortutay): additional policy commands
-)
-
-// TODO(ortutay): implement real selectors; PolicySelector is just a placeholder
-type PolicySelector string
-
-const (
-	GLOBAL PolicySelector = "global"
-)
-
-type Policy struct {
-	Selector PolicySelector
-	Cmd      PolicyCmd
-	Args     []interface{}
 }
 
 func (s *Server) ListenAndServe() error {
@@ -137,6 +115,8 @@ func (s *Server) Serve(listener net.Listener) error {
 			return
 		}
 
+		fmt.Printf("Got request: %v\n", req)
+
 		// TODO(ortutay): implement additional request validation
 		// - validate sigs
 		// - check nonce
@@ -149,7 +129,7 @@ func (s *Server) Serve(listener net.Listener) error {
 			return
 		}
 
-		resp, err := s.Handler.Handle(req)
+		resp, err := s.Handler.Handle(req, &s.Policies)
 		if err != nil {
 			writeErrorResp(msg.SERVER_ERROR, conn)
 		} else {
@@ -165,11 +145,11 @@ func (s *Server) IsAllowedByPolicy(req *msg.OcReq) (bool, msg.OcRespStatus) {
 	for _, policy := range s.Policies {
 		fmt.Printf("check against policy: %v\n", policy)
 		switch policy.Cmd {
-		case ALLOW:
+		case conf.ALLOW:
 			continue
-		case DENY:
+		case conf.DENY:
 			return false, msg.ACCESS_DENIED
-		case MIN_FEE:
+		case conf.MIN_FEE:
 			min := policy.Args[0].(msg.PaymentValue)
 			fmt.Printf("min fee: %v, pt: %v\n", min, req.PaymentType)
 			if req.PaymentType != msg.ATTACHED {
@@ -184,9 +164,7 @@ func (s *Server) IsAllowedByPolicy(req *msg.OcReq) (bool, msg.OcRespStatus) {
 }
 
 func readOcReq(conn net.Conn) (*msg.OcReq, error) {
-	println("read req")
 	b64, err := bufio.NewReader(conn).ReadString('\n')
-	fmt.Printf("did read req %v", b64)
 	if err != nil {
 		return nil, fmt.Errorf("could not read request")
 	}

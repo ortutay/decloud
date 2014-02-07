@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ortutay/decloud/conf"
 	"github.com/ortutay/decloud/msg"
 	"strconv"
 	"strings"
@@ -94,7 +95,7 @@ func Measure(req *msg.OcReq) (*Work, error) {
 type CalcService struct {
 }
 
-func (cs CalcService) Handle(req *msg.OcReq) (*msg.OcResp, error) {
+func (cs CalcService) Handle(req *msg.OcReq, policies *[]conf.Policy) (*msg.OcResp, error) {
 	println(fmt.Sprintf("calc got request: %v", req))
 
 	methods := make(map[string]func(*msg.OcReq) (*msg.OcResp, error))
