@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"oc/cred"
-	"oc/msg"
+	"github.com/ortutay/decloud/cred"
+	"github.com/ortutay/decloud/msg"
 )
 
 type Client struct {

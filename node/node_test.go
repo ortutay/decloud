@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"oc/cred"
-	"oc/msg"
-	"oc/services/calc"
+	"github.com/ortutay/decloud/cred"
+	"github.com/ortutay/decloud/msg"
+	"github.com/ortutay/decloud/services/calc"
 	"testing"
 )
 

@@ -125,7 +125,7 @@ func getReqSigDataHash(req *msg.OcReq) ([]byte, error) {
 	return h, nil
 }
 
-// TODO(ortutay): move sign and verify to oc/msg?
+// TODO(ortutay): move sign and verify to msg?
 func (cred *OcCred) SignOcReq(req *msg.OcReq) error {
 	h, err := getReqSigDataHash(req)
 	if err != nil {
