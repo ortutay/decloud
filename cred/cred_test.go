@@ -15,7 +15,7 @@ var _ = fmt.Printf
 
 func newReq() *msg.OcReq {
 	msg := msg.OcReq{
-		NodeId:      []string{},
+		Id:          []string{},
 		Sig:         []string{},
 		Nonce:       "",
 		Service:     "storage",
@@ -80,9 +80,9 @@ func TestSignRequest(t *testing.T) {
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	if len(ocReq.NodeId) != 1 || len(ocReq.Sig) != 1 {
+	if len(ocReq.Id) != 1 || len(ocReq.Sig) != 1 {
 		t.Errorf("expected exactly 1 id and sig, got %v %v",
-			len(ocReq.NodeId), len(ocReq.Sig))
+			len(ocReq.Id), len(ocReq.Sig))
 	}
 
 	ok, err := VerifyOcReqSig(ocReq, nil)
@@ -117,14 +117,14 @@ func TestInvalidOcSignatureFails(t *testing.T) {
 		t.Errorf("invalid sig %v verified", ocReq.Sig[0])
 	}
 
-	originalNodeId := ocReq.NodeId[0]
-	ocReq.NodeId[0] = originalNodeId[1:] + "1"
+	originalId := ocReq.Id[0]
+	ocReq.Id[0] = originalId[1:] + "1"
 	if ok, _ := VerifyOcReqSig(ocReq, nil); ok {
-		t.Errorf("invalid node id %v verified", ocReq.NodeId[0])
+		t.Errorf("invalid node id %v verified", ocReq.Id[0])
 	}
 
 	if ok, _ := VerifyOcReqSig(ocReq, nil); ok {
-		t.Errorf("invalid node id %v verified", ocReq.NodeId[0])
+		t.Errorf("invalid node id %v verified", ocReq.Id[0])
 	}
 }
 
@@ -238,11 +238,11 @@ func TestInvalidBtcSignatureFails(t *testing.T) {
 		t.Errorf("expected malformed base64 encoding error, but got  %v", err)
 	}
 
-	originalNodeId := ocReq.NodeId[0]
-	ocReq.NodeId[0] = originalNodeId[0:len(originalNodeId)-2] + "1"
+	originalId := ocReq.Id[0]
+	ocReq.Id[0] = originalId[0:len(originalId)-2] + "1"
 	ok, err = VerifyOcReqSig(ocReq, conf)
 	if ok {
-		t.Errorf("invalid node id %v verified", ocReq.NodeId[0])
+		t.Errorf("invalid node id %v verified", ocReq.Id[0])
 	}
 	if err == nil || err.Error() != "-3: Invalid address" {
 		t.Errorf("expected invalid address error, but got  %v", err)

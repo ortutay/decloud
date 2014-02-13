@@ -143,7 +143,7 @@ func (cred *OcCred) SignOcReq(req *msg.OcReq) error {
 		return fmt.Errorf("error during ECDSA signature: %v", err.Error())
 	}
 	// TODO(ortutay): compress pub key
-	req.NodeId = append(req.NodeId, fmt.Sprintf("%c%x,%x",
+	req.Id = append(req.Id, fmt.Sprintf("%c%x,%x",
 		OC_ID_PREFIX, cred.Priv.PublicKey.X, cred.Priv.PublicKey.Y))
 	req.Sig = append(req.Sig, fmt.Sprintf("%x,%x", r, s))
 
@@ -151,7 +151,7 @@ func (cred *OcCred) SignOcReq(req *msg.OcReq) error {
 }
 
 func VerifyOcReqSig(req *msg.OcReq, conf *util.BitcoindConf) (bool, error) {
-	if len(req.NodeId) != len(req.Sig) {
+	if len(req.Id) != len(req.Sig) {
 		return false, nil
 	}
 
@@ -160,8 +160,8 @@ func VerifyOcReqSig(req *msg.OcReq, conf *util.BitcoindConf) (bool, error) {
 		return false, err
 	}
 
-	for i, _ := range req.NodeId {
-		nodeId := req.NodeId[i]
+	for i, _ := range req.Id {
+		nodeId := req.Id[i]
 		sig := req.Sig[i]
 		fmt.Printf("verify %v %v\n", nodeId, sig)
 
@@ -246,7 +246,7 @@ func (bc *BtcCred) SignOcReq(req *msg.OcReq, conf *util.BitcoindConf) error {
 		return errors.New("error during bitcoind JSON-RPC")
 	}
 
-	req.NodeId = append(req.NodeId, fmt.Sprintf(bc.Addr))
+	req.Id = append(req.Id, fmt.Sprintf(bc.Addr))
 	req.Sig = append(req.Sig, fmt.Sprintf(sig))
 
 	return nil
