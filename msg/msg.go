@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"bufio"
 )
 
 var _ = fmt.Printf
@@ -53,8 +55,8 @@ const (
 )
 
 type PaymentValue struct {
-	Amount   float64
-	Currency Currency
+	Amount   int64 `json:"amount"`
+	Currency Currency `json:"currency"`
 }
 
 func (pv *PaymentValue) ToString() string {
@@ -77,19 +79,18 @@ func NewPaymentValue(str string) (*PaymentValue, error) {
 	}
 }
 
-// For now, all fields are string or []byte.
-// TODO(ortutay): add types for these fields
+// TODO(ortutay): add types as appropriate
 type OcReq struct {
-	NodeId       []string
-	Sig          []string
-	Nonce        string
-	Service      string
-	Method       string
-	Args         []string
-	PaymentType  PaymentType
-	PaymentValue *PaymentValue
-	PaymentTxn   string
-	Body         []byte
+	Id       []string `json:"id,omitempty"`
+	Sig          []string `json:"sig,omitempty"`
+	Nonce        string `json:"nonce,omitempty"`
+	Service      string `json:"service"`
+	Method       string `json:"method"`
+	Args         []string `json:"args,omitempty"`
+	PaymentType  PaymentType `json:"paymentType,omitempty"`
+	PaymentValue *PaymentValue `json:"paymentValue,omitempty"`
+	PaymentTxn   string `json:"paymentTxn,omitempty"`
+	Body         []byte `json:"-"`
 }
 
 func (r *OcReq) WriteSignablePortion(w io.Writer) error {
@@ -104,6 +105,63 @@ func (r *OcReq) WriteSignablePortion(w io.Writer) error {
 	w.Write([]byte(r.PaymentTxn))
 	w.Write(r.Body)
 	return nil
+}
+
+func (r *OcReq) Write(w io.Writer) error {
+	b, err := json.Marshal(r)
+	if err != nil {
+		return fmt.Errorf("Error while marshaling to json: %v", err.Error())
+	}
+	_, err = w.Write(b)
+	if err != nil {
+		return fmt.Errorf("Error while writing: %v", err.Error())
+	}
+	_, err = w.Write([]byte("\n"))
+	if err != nil {
+		return fmt.Errorf("Error while writing: %v", err.Error())
+	}
+	if len(r.Body) > 0 {
+		_, err = w.Write(r.Body)
+		if err != nil {
+			return fmt.Errorf("Error while writing: %v", err.Error())
+		}
+	}
+	return nil
+}
+
+func ReadOcReq(r *bufio.Reader) (*OcReq, error) {
+	jsonLine, err  := r.ReadBytes('\n')
+	if err != nil {
+		return nil, fmt.Errorf("error while reading req JSON line: %v", err.Error())
+	}
+	body, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, fmt.Errorf("error while reading req body: %v", err.Error())
+	}
+	var req OcReq
+	err = json.Unmarshal(jsonLine, &req)
+	if err != nil {
+		return nil, fmt.Errorf("error while unmarshalling req: %v", err.Error())
+	}
+	req.Body = body
+	return &req, nil
+}
+
+func (r *OcReq) String() string {
+	b, err := json.Marshal(r)
+	if err != nil {
+		return ""
+	}
+	var buf bytes.Buffer
+	err = json.Indent(&buf, b, "", "  ")
+	if err != nil {
+		return ""
+	}
+	if len(r.Body) > 0 {
+		return buf.String() + "\n" + string(r.Body)
+	} else {
+		return buf.String() + "\n"
+	}
 }
 
 // TODO(ortutay): WriteEncoded(w io.Writer)
@@ -136,6 +194,7 @@ const (
 	INVALID_SIGNATURE   = CLIENT_ERROR + "/invalid-signature"
 	SERVICE_UNSUPPORTED = CLIENT_ERROR + "/service-unsupported"
 	METHOD_UNSUPPORTED  = CLIENT_ERROR + "/method-unsupported"
+	INVALID_ARGUMENTS  = CLIENT_ERROR + "/invalid-arguments"
 
 	SERVER_ERROR = "server-error"
 
