@@ -7,17 +7,19 @@ import (
 )
 
 func TestReadWriteOcReq(t *testing.T) {
+	body := []byte("some body, just a string here, but could be binary data")
 	req := OcReq{
-		Id:           []string{"id1", "id2", "id3"},
-		Sig:          []string{"sig1", "sig2", "sig3"},
-		Nonce:        "abcnonce",
-		Service:      "testService",
-		Method:       "testMethod",
-		Args:         []string{"1", "2"},
-		PaymentType:  ATTACHED,
-		PaymentValue: &PaymentValue{Amount: 1e8, Currency: BTC},
-		PaymentTxn:   "base64-btc-txn",
-		Body:         []byte("some body, just a string here, but could be binary data"),
+		Id:            []string{"id1", "id2", "id3"},
+		Sig:           []string{"sig1", "sig2", "sig3"},
+		Nonce:         "abcnonce",
+		Service:       "testService",
+		Method:        "testMethod",
+		Args:          []string{"1", "2"},
+		PaymentType:   ATTACHED,
+		PaymentValue:  &PaymentValue{Amount: 1e8, Currency: BTC},
+		PaymentTxn:    "base64-btc-txn",
+		ContentLength: len(body),
+		Body:          body,
 	}
 	buf := bytes.Buffer{}
 	err := req.Write(&buf)
@@ -35,12 +37,14 @@ func TestReadWriteOcReq(t *testing.T) {
 }
 
 func TestReadWriteOcResp(t *testing.T) {
+	body := []byte("some body, just a string here, but could be binary data")
 	resp := OcResp{
-		Id:     []string{"id1", "id2", "id3"},
-		Sig:    []string{"sig1", "sig2", "sig3"},
-		Nonce:  "abcnonce",
-		Status: OK,
-		Body:   []byte("some body, just a string here, but could be binary data"),
+		Id:            []string{"id1", "id2", "id3"},
+		Sig:           []string{"sig1", "sig2", "sig3"},
+		Nonce:         "abcnonce",
+		Status:        OK,
+		ContentLength: len(body),
+		Body:          body,
 	}
 	buf := bytes.Buffer{}
 	err := resp.Write(&buf)

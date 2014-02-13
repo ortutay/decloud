@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 )
 
 var _ = fmt.Printf
@@ -74,16 +73,17 @@ func NewPaymentValue(str string) (*PaymentValue, error) {
 
 // TODO(ortutay): add types as appropriate
 type OcReq struct {
-	Id           []string      `json:"id,omitempty"`
-	Sig          []string      `json:"sig,omitempty"`
-	Nonce        string        `json:"nonce,omitempty"`
-	Service      string        `json:"service"`
-	Method       string        `json:"method"`
-	Args         []string      `json:"args,omitempty"`
-	PaymentType  PaymentType   `json:"paymentType,omitempty"`
-	PaymentValue *PaymentValue `json:"paymentValue,omitempty"`
-	PaymentTxn   string        `json:"paymentTxn,omitempty"`
-	Body         []byte        `json:"-"`
+	Id            []string      `json:"id,omitempty"`
+	Sig           []string      `json:"sig,omitempty"`
+	Nonce         string        `json:"nonce,omitempty"`
+	Service       string        `json:"service"`
+	Method        string        `json:"method"`
+	Args          []string      `json:"args,omitempty"`
+	PaymentType   PaymentType   `json:"paymentType,omitempty"`
+	PaymentValue  *PaymentValue `json:"paymentValue,omitempty"`
+	PaymentTxn    string        `json:"paymentTxn,omitempty"`
+	ContentLength int           `json:"contentLength,omitempty"`
+	Body          []byte        `json:"-"`
 }
 
 func (r *OcReq) WriteSignablePortion(w io.Writer) error {
@@ -105,15 +105,21 @@ func (r *OcReq) Write(w io.Writer) error {
 }
 
 func ReadOcReq(r *bufio.Reader) (*OcReq, error) {
-	jsonLine, body, err := readMsg(r)
+	jsonLine, err := r.ReadBytes('\n')
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error while reading JSON line: %v", err.Error())
 	}
 	var req OcReq
-	req.Body = body
 	err = json.Unmarshal(jsonLine, &req)
 	if err != nil {
 		return nil, fmt.Errorf("error while unmarshalling: %v", err.Error())
+	}
+	if req.ContentLength > 0 {
+		req.Body = make([]byte, req.ContentLength)
+		_, err := io.ReadFull(r, req.Body)
+		if err != nil {
+			return nil, fmt.Errorf("error while reading body: %v", err.Error())
+		}
 	}
 	return &req, nil
 }
@@ -166,7 +172,8 @@ type OcResp struct {
 	Nonce  string       `json:"nonce,omitempty"`
 	Status OcRespStatus `json:"status,omitempty"`
 	// TODO(ortutay): status code
-	Body []byte `json:"-"`
+	ContentLength int    `json:"contentLength,omitempty"`
+	Body          []byte `json:"-"`
 }
 
 func NewRespOk(body []byte) *OcResp {
@@ -198,15 +205,22 @@ func (r *OcResp) Write(w io.Writer) error {
 }
 
 func ReadOcResp(r *bufio.Reader) (*OcResp, error) {
-	jsonLine, body, err := readMsg(r)
+	// TODO(ortutay): shared header that inclues ContentLength
+	jsonLine, err := r.ReadBytes('\n')
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error while reading JSON line: %v", err.Error())
 	}
 	var resp OcResp
-	resp.Body = body
 	err = json.Unmarshal(jsonLine, &resp)
 	if err != nil {
 		return nil, fmt.Errorf("error while unmarshalling: %v", err.Error())
+	}
+	if resp.ContentLength > 0 {
+		resp.Body = make([]byte, resp.ContentLength)
+		_, err := io.ReadFull(r, resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("error while reading body: %v", err.Error())
+		}
 	}
 	return &resp, nil
 }
@@ -235,18 +249,6 @@ func writeMsg(v interface{}, body []byte, w io.Writer) error {
 		}
 	}
 	return nil
-}
-
-func readMsg(r *bufio.Reader) ([]byte, []byte, error) {
-	jsonLine, err := r.ReadBytes('\n')
-	if err != nil {
-		return nil, nil, fmt.Errorf("error while reading JSON line: %v", err.Error())
-	}
-	body, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error while reading body: %v", err.Error())
-	}
-	return jsonLine, body, nil
 }
 
 func msgString(v interface{}, body []byte) string {
