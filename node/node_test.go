@@ -54,6 +54,7 @@ func TestRoundTrip(t *testing.T) {
 	}
 
 	req := calc.NewCalcReq([]string{"1 2 +"})
+	println("send req")
 	resp, err := c.SendRequest(addr, req)
 	if err != nil {
 		log.Fatal(err)
@@ -73,11 +74,13 @@ func TestPaymentRequired(t *testing.T) {
 		Cred:    &cred.Cred{},
 		Addr:    addr,
 		Handler: handler,
-		Policies: []conf.Policy{
-			conf.Policy{
-				Selector: conf.GLOBAL,
-				Cmd:      conf.MIN_FEE,
-				Args:     []interface{}{msg.PaymentValue{1, msg.BTC}},
+		Conf: conf.Conf{
+			Policies: []conf.Policy{
+				conf.Policy{
+					Selector: conf.PolicySelector{},
+					Cmd:      conf.MIN_FEE,
+					Args:     []interface{}{msg.PaymentValue{1, msg.BTC}},
+				},
 			},
 		},
 	}
@@ -108,7 +111,20 @@ func TestPaymentRoundTrip(t *testing.T) {
 
 	addr := ":9443"
 	services := make(map[string]Handler)
-	services[calc.SERVICE_NAME] = calc.CalcService{}
+	services[calc.SERVICE_NAME] = calc.CalcService{
+		Conf: conf.Conf{
+			Policies: []conf.Policy{
+				conf.Policy{
+					Selector: conf.PolicySelector{
+						Service: calc.SERVICE_NAME,
+						Method:  calc.CALCULATE_METHOD,
+					},
+					Cmd:  conf.MIN_FEE,
+					Args: []interface{}{msg.PaymentValue{2, msg.BTC}},
+				},
+			},
+		},
+	}
 	services[info.SERVICE_NAME] = &info.InfoService{BitcoindConf: btcConf}
 	mux := ServiceMux{
 		Services: services,
@@ -117,13 +133,6 @@ func TestPaymentRoundTrip(t *testing.T) {
 		Cred:    &cred.Cred{},
 		Addr:    addr,
 		Handler: &mux,
-		Policies: []conf.Policy{
-			conf.Policy{
-				Selector: conf.GLOBAL,
-				Cmd:      conf.MIN_FEE,
-				Args:     []interface{}{msg.PaymentValue{1, msg.BTC}},
-			},
-		},
 	}
 	listener, err := net.Listen("tcp", s.Addr)
 	defer listener.Close()
@@ -138,24 +147,27 @@ func TestPaymentRoundTrip(t *testing.T) {
 
 	// Quote
 	go s.Serve(listener)
+	fmt.Printf("quote\n")
 	calcReq := calc.NewCalcReq([]string{"1 2 +"})
 	work, err := calc.Measure(calcReq)
 	if err != nil {
 		log.Fatal(err)
 	}
 	quoteReq := calc.NewQuoteReq(work)
+	fmt.Printf("quote req: %v\n", quoteReq)
 	resp, err := c.SendRequest(addr, quoteReq)
 	if err != nil {
 		log.Fatal(err)
 	}
 	pv, err := msg.NewPaymentValue(string(resp.Body))
+	fmt.Printf("resp: %v\nbody: %v\n", resp, string(resp.Body))
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("resp: %v\npv: %v\n", resp, pv)
 
 	// Get payment address
 	go s.Serve(listener)
+	fmt.Printf("get payment addr\n")
 	payAddrReq := info.NewPaymentAddrReq(msg.BTC)
 	fmt.Printf("req: %v\n", payAddrReq)
 	resp, err = c.SendRequest(addr, payAddrReq)
@@ -168,9 +180,25 @@ func TestPaymentRoundTrip(t *testing.T) {
 	}
 	fmt.Printf("resp: %v\npa: %v\n", resp, pa)
 
-	// Send request with defered payment
-	calcReq.AttachDeferredPayment(pv)
-	fmt.Printf("req with deferred payment: %v\n", calcReq)
+	// Send low payment
+	go s.Serve(listener)
+	fmt.Printf("send req with deferred payment")
+	sendLowPv := msg.PaymentValue(*pv)
+	sendLowPv.Amount -= 1
+	calcReqLowPv := msg.OcReq(*calcReq)
+	calcReqLowPv.AttachDeferredPayment(&sendLowPv)
+	resp, err = c.SendRequest(addr, &calcReqLowPv)
+	if resp.Status != msg.TOO_LOW {
+		log.Fatalf("expected status %v, got %v", msg.TOO_LOW, resp.Status)
+	}
 
-	// TODO: submit request, and then fulfill deferred payment
+	// Send requested payment
+	go s.Serve(listener)
+	fmt.Printf("send req with deferred payment")
+	sendPv := msg.PaymentValue(*pv)
+	calcReq.AttachDeferredPayment(&sendPv)
+	resp, err = c.SendRequest(addr, calcReq)
+	if resp.Status != msg.OK {
+		log.Fatalf("expected status %v, got %v", msg.OK, resp.Status)
+	}
 }

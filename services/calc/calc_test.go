@@ -25,7 +25,7 @@ func TestMeasure(t *testing.T) {
 func TestCalculate_Simple(t *testing.T) {
 	cs := CalcService{}
 	req := NewCalcReq([]string{"1 2 +"})
-	resp, err := cs.Calculate(req)
+	resp, err := cs.Handle(req)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestCalculate_Complex(t *testing.T) {
 		"3 4.5 + 7 - 8.123 *",
 		"5 1 2 + 4 * + 3 -"}
 	req := NewCalcReq(args)
-	resp, err := cs.Calculate(req)
+	resp, err := cs.Handle(req)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -57,7 +57,7 @@ func TestCalculate_Complex(t *testing.T) {
 func TestCalculate_InvalidExpr(t *testing.T) {
 	cs := CalcService{}
 	req := NewCalcReq([]string{"1 2 + 3"})
-	_, err := cs.Calculate(req)
+	_, err := cs.Handle(req)
 	if err == nil || err.Error() != "invalid expression" {
 		log.Fatal(err)
 	}

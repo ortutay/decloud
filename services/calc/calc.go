@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ortutay/decloud/btc"
 	"github.com/ortutay/decloud/conf"
 	"github.com/ortutay/decloud/msg"
+	"log"
 	"strconv"
 	"strings"
 )
@@ -13,57 +15,68 @@ import (
 var _ = fmt.Printf
 
 const (
-	SERVICE_NAME = "calc"
-	CALCULATE    = "calculate"
-	QUOTE        = "quote"
+	SERVICE_NAME     = "calc"
+	CALCULATE_METHOD = "calculate"
+	QUOTE_METHOD     = "quote"
 )
 
+type QuoteArgs struct {
+	Method string `json:"method"`
+	Work   *Work  `json:"work"`
+}
+
 func NewQuoteReq(work *Work) *msg.OcReq {
-	workStr := work.ToString()
+	args := QuoteArgs{Method: CALCULATE_METHOD, Work: work}
+	argsJson, err := json.Marshal(args)
+	if err != nil {
+		panic(err)
+	}
 	msg := msg.OcReq{
-		NodeId:      []string{},
-		Sig:         []string{},
-		Nonce:       "",
-		Service:     SERVICE_NAME,
-		Method:      QUOTE,
-		Args:        []string{workStr},
-		PaymentType: "",
-		PaymentTxn:  "",
-		Body:        []byte(""),
+		Id:            []string{},
+		Sig:           []string{},
+		Nonce:         "",
+		Service:       SERVICE_NAME,
+		Method:        QUOTE_METHOD,
+		Args:          argsJson,
+		PaymentType:   "",
+		PaymentTxn:    "",
+		ContentLength: 0,
+		Body:          []byte(""),
 	}
 	return &msg
 }
 
 func NewCalcReq(queries []string) *msg.OcReq {
+	argsJson, _ := json.Marshal(queries)
 	msg := msg.OcReq{
-		NodeId:      []string{},
-		Sig:         []string{},
-		Nonce:       "",
-		Service:     SERVICE_NAME,
-		Method:      CALCULATE,
-		Args:        queries,
-		PaymentType: "",
-		PaymentTxn:  "",
-		Body:        []byte(""),
+		Id:            []string{},
+		Sig:           []string{},
+		Nonce:         "",
+		Service:       SERVICE_NAME,
+		Method:        CALCULATE_METHOD,
+		Args:          argsJson,
+		PaymentType:   "",
+		PaymentTxn:    "",
+		ContentLength: 0,
+		Body:          []byte(""),
 	}
 	return &msg
 }
 
 type Work struct {
-	NumQueries int
-	NumBytes   int
+	NumQueries int `json:"numQueries"`
+	NumBytes   int `json:"numBytes"`
 }
 
-func (w *Work) ToString() string {
-	// TODO(ortutay): figure out real wire format
+func (w *Work) String() string {
 	b, err := json.Marshal(w)
 	if err != nil {
 		panic(err)
 	}
 	return string(b)
 }
-func FromString(str string) (*Work, error) {
-	// TODO(ortutay): figure out real wire format
+
+func NewWork(str string) (*Work, error) {
 	var work Work
 	err := json.Unmarshal([]byte(str), &work)
 	if err != nil {
@@ -77,15 +90,19 @@ func FromString(str string) (*Work, error) {
 
 func Measure(req *msg.OcReq) (*Work, error) {
 	if req.Service != SERVICE_NAME {
-		return nil, fmt.Errorf("expected %s service, got %s",
-			SERVICE_NAME, req.Service)
+		panic(fmt.Sprintf("unexpected service %s", req.Service))
 	}
-	if req.Method != CALCULATE {
+	if req.Method != CALCULATE_METHOD {
 		return nil, fmt.Errorf("can only measure work for %s method, got %s",
-			CALCULATE, req.Method)
+			CALCULATE_METHOD, req.Method)
+	}
+	var queries []string
+	err := json.Unmarshal(req.Args, &queries)
+	if err != nil {
+		return nil, fmt.Errorf("invalid args for calc.Measure %v: %v", req.Args, err.Error())
 	}
 	var work Work
-	for _, q := range req.Args {
+	for _, q := range queries {
 		work.NumBytes += len(q)
 		work.NumQueries++
 	}
@@ -93,14 +110,39 @@ func Measure(req *msg.OcReq) (*Work, error) {
 }
 
 type CalcService struct {
+	Conf conf.Conf
 }
 
-func (cs CalcService) Handle(req *msg.OcReq, policies *[]conf.Policy) (*msg.OcResp, error) {
+func (cs CalcService) paymentForWork(work *Work, method string) (*msg.PaymentValue, error) {
+	matching := cs.Conf.MatchingPolicies(SERVICE_NAME, method)
+	minFees := make([]*conf.Policy, 0)
+	for _, policy := range matching {
+		if policy.Cmd == conf.MIN_FEE {
+			minFees = append(minFees, policy)
+		}
+	}
+	if len(minFees) > 1 {
+		log.Printf("more than 1 min fee for calc.%v (got %v)", method, minFees)
+		return nil, errors.New("more than 1 min fee")
+	}
+	var pv msg.PaymentValue
+	if len(minFees) == 0 {
+		pv = msg.PaymentValue{Amount: 0, Currency: "BTC"}
+	} else {
+		pv = minFees[0].Args[0].(msg.PaymentValue)
+	}
+	return &pv, nil
+}
+
+func (cs CalcService) Handle(req *msg.OcReq) (*msg.OcResp, error) {
 	println(fmt.Sprintf("calc got request: %v", req))
+	if req.Service != SERVICE_NAME {
+		panic(fmt.Sprintf("unexpected service %s", req.Service))
+	}
 
 	methods := make(map[string]func(*msg.OcReq) (*msg.OcResp, error))
-	methods[CALCULATE] = cs.Calculate
-	methods[QUOTE] = cs.Quote
+	methods[CALCULATE_METHOD] = cs.calculate
+	methods[QUOTE_METHOD] = cs.quote
 
 	if method, ok := methods[req.Method]; ok {
 		return method(req)
@@ -109,23 +151,79 @@ func (cs CalcService) Handle(req *msg.OcReq, policies *[]conf.Policy) (*msg.OcRe
 	}
 }
 
-func (cs CalcService) Info(req *msg.OcReq) (*msg.OcResp, error) {
+func (cs CalcService) info(req *msg.OcReq) (*msg.OcResp, error) {
 	return nil, nil
 }
 
-func (cs CalcService) Quote(req *msg.OcReq) (*msg.OcResp, error) {
-	pv := msg.PaymentValue{Amount: .01, Currency: "BTC"}
-	resp := msg.NewRespOk([]byte(pv.ToString()))
+func (cs CalcService) quote(req *msg.OcReq) (*msg.OcResp, error) {
+	var quoteArgs QuoteArgs
+	err := json.Unmarshal(req.Args, &quoteArgs)
+	if err != nil {
+		return msg.NewRespError(msg.INVALID_ARGUMENTS), nil
+	}
+	if quoteArgs.Method != CALCULATE_METHOD {
+		return msg.NewRespError(msg.INVALID_ARGUMENTS), nil
+	}
+
+	fmt.Printf("quote for work: %v\n", quoteArgs.Work)
+
+	pv, err := cs.paymentForWork(quoteArgs.Work, quoteArgs.Method)
+	if err != nil {
+		log.Printf("server error: %v", err.Error())
+		return msg.NewRespError(msg.SERVER_ERROR), nil
+	}
+	resp := msg.NewRespOk([]byte(pv.String()))
 	return resp, nil
 }
 
-func (cs CalcService) Methods(req *msg.OcReq) (*msg.OcResp, error) {
+func (cs CalcService) methods(req *msg.OcReq) (*msg.OcResp, error) {
 	return nil, nil
 }
 
-func (cs CalcService) Calculate(req *msg.OcReq) (*msg.OcResp, error) {
-	var results []string
-	for _, q := range req.Args {
+func (cs CalcService) calculate(req *msg.OcReq) (*msg.OcResp, error) {
+	// TODO(ortutay): pull out payment verifcation logic
+	work, err := Measure(req)
+	if err != nil {
+		log.Printf("server error: %v", err.Error())
+		return msg.NewRespError(msg.SERVER_ERROR), nil
+	}
+	pv, err := cs.paymentForWork(work, CALCULATE_METHOD)
+	if err != nil {
+		log.Printf("server error: %v", err.Error())
+		return msg.NewRespError(msg.SERVER_ERROR), nil
+	}
+	var submitTxn string
+	if pv.Amount != 0 {
+		fmt.Printf("want payment: %v, got payment: %v\n", pv, req.PaymentValue)
+		if req.PaymentType == msg.NONE || req.PaymentValue == nil {
+			return msg.NewRespError(msg.PAYMENT_REQUIRED), nil
+		}
+		if req.PaymentValue.Currency != pv.Currency {
+			return msg.NewRespError(msg.CURRENCY_UNSUPPORTED), nil
+		}
+		if req.PaymentValue.Amount < pv.Amount {
+			return msg.NewRespError(msg.TOO_LOW), nil
+		}
+
+		switch req.PaymentType {
+		case msg.DEFER:
+			// TODO(ortutay): check if we accept deferred payment for the request
+			// return msg.NewRespError(msg.NO_DEFER), nil
+		case msg.ATTACHED:
+			if !btc.TxnIsValid(req.PaymentTxn, req.PaymentValue) {
+				return msg.NewRespError(msg.INVALID_TXN), nil
+			}
+			submitTxn = req.PaymentTxn
+		}
+	}
+
+	var queries, results []string
+	err = json.Unmarshal(req.Args, &queries)
+	if err != nil {
+		fmt.Printf("args: %v %v", string(req.Args), err.Error())
+		return msg.NewRespError(msg.INVALID_ARGUMENTS), nil
+	}
+	for _, q := range queries {
 		tokens := strings.Split(q, " ")
 		var stack []float64
 		for _, token := range tokens {
@@ -160,5 +258,8 @@ func (cs CalcService) Calculate(req *msg.OcReq) (*msg.OcResp, error) {
 		results = append(results, fmt.Sprintf("%v", stack[0]))
 	}
 	resp := msg.NewRespOk([]byte(strings.Join(results, " ")))
+	if submitTxn != "" {
+		_ = btc.SubmitTxn(submitTxn)
+	}
 	return resp, nil
 }

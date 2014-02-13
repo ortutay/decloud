@@ -6,7 +6,6 @@ import (
 	"github.com/ortutay/decloud/conf"
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
-	"io"
 	"net"
 )
 
@@ -37,51 +36,40 @@ func (c *Client) SendRequest(addr string, req *msg.OcReq) (*msg.OcResp, error) {
 		return nil, fmt.Errorf("error while dialing: %v", err.Error())
 	}
 
-	encoded, err := req.Encode()
-	if err != nil {
-		return nil, fmt.Errorf("error while encoding: %v", err.Error())
-	}
-
-	_, err = fmt.Fprintf(conn, string(encoded)+"\n")
+	err = req.Write(conn)
 	if err != nil {
 		return nil, fmt.Errorf("error while writing to conn: %v", err.Error())
 	}
 
-	b64resp, err := bufio.NewReader(conn).ReadString('\n')
+	resp, err := msg.ReadOcResp(bufio.NewReader(conn))
 	if err != nil {
 		return nil, fmt.Errorf("error while reading: %v", err.Error())
-	}
-	println("got resp")
-
-	resp, err := msg.DecodeResp(b64resp)
-	if err != nil {
-		return nil, fmt.Errorf("error while decoding %v: %v", b64resp, err.Error())
 	}
 
 	return resp, nil
 }
 
 type Handler interface {
-	Handle(*msg.OcReq, *[]conf.Policy) (*msg.OcResp, error)
+	Handle(*msg.OcReq) (*msg.OcResp, error)
 }
 
 type ServiceMux struct {
 	Services map[string]Handler
 }
 
-func (sm *ServiceMux) Handle(req *msg.OcReq, policies *[]conf.Policy) (*msg.OcResp, error) {
+func (sm *ServiceMux) Handle(req *msg.OcReq) (*msg.OcResp, error) {
 	if service, ok := sm.Services[req.Service]; ok {
-		return service.Handle(req, policies)
+		return service.Handle(req)
 	} else {
 		return msg.NewRespError(msg.SERVICE_UNSUPPORTED), nil
 	}
 }
 
 type Server struct {
-	Cred     *cred.Cred
-	Addr     string
-	Policies []conf.Policy
-	Handler  Handler
+	Cred    *cred.Cred
+	Addr    string
+	Conf    conf.Conf
+	Handler Handler
 }
 
 func (s *Server) ListenAndServe() error {
@@ -107,11 +95,12 @@ func (s *Server) Serve(listener net.Listener) error {
 		return err
 	}
 	go (func(conn net.Conn) {
-		req, err := readOcReq(conn)
+		println("get req")
+		req, err := msg.ReadOcReq(bufio.NewReader(conn))
 		defer conn.Close()
 		defer fmt.Fprintf(conn, "\n")
 		if err != nil {
-			writeErrorResp(msg.BAD_REQUEST, conn)
+			msg.NewRespError(msg.BAD_REQUEST).Write(conn)
 			return
 		}
 
@@ -123,26 +112,31 @@ func (s *Server) Serve(listener net.Listener) error {
 		// - check service available
 		// - check method available
 
-		if ok, status := s.IsAllowedByPolicy(req); !ok {
+		if ok, status := s.isAllowedByPolicy(req); !ok {
+			if status == msg.OK {
+				panic("expected error status")
+			}
 			fmt.Printf("not allowed: %v %v\n", ok, status)
-			writeErrorResp(status, conn)
+			msg.NewRespError(status).Write(conn)
 			return
 		}
 
-		resp, err := s.Handler.Handle(req, &s.Policies)
+		resp, err := s.Handler.Handle(req)
 		if err != nil {
-			writeErrorResp(msg.SERVER_ERROR, conn)
+			msg.NewRespError(msg.SERVER_ERROR).Write(conn)
 		} else {
-			writeResp(resp, conn)
+			fmt.Printf("sending response: %v\n", resp)
+			resp.Write(conn)
 		}
 		return
 	})(conn)
 	return nil
 }
 
-func (s *Server) IsAllowedByPolicy(req *msg.OcReq) (bool, msg.OcRespStatus) {
+func (s *Server) isAllowedByPolicy(req *msg.OcReq) (bool, msg.OcRespStatus) {
 	fmt.Printf("is allowed? %v\n", s)
-	for _, policy := range s.Policies {
+	policies := s.Conf.MatchingPolicies(req.Service, req.Method)
+	for _, policy := range policies {
 		fmt.Printf("check against policy: %v\n", policy)
 		switch policy.Cmd {
 		case conf.ALLOW:
@@ -161,39 +155,4 @@ func (s *Server) IsAllowedByPolicy(req *msg.OcReq) (bool, msg.OcRespStatus) {
 		}
 	}
 	return true, msg.OK
-}
-
-func readOcReq(conn net.Conn) (*msg.OcReq, error) {
-	b64, err := bufio.NewReader(conn).ReadString('\n')
-	if err != nil {
-		return nil, fmt.Errorf("could not read request")
-	}
-	req, err := msg.DecodeReq(b64)
-	if err != nil {
-		return nil, fmt.Errorf("could not parse request")
-	}
-	return req, nil
-}
-
-func writeErrorResp(status msg.OcRespStatus, w io.Writer) {
-	if status == msg.OK {
-		panic("got status OK, but expected an error status")
-	}
-
-	resp := msg.NewRespError(status)
-	writeResp(resp, w)
-}
-
-func writeResp(resp *msg.OcResp, w io.Writer) {
-	encoded, err := resp.Encode()
-	if err != nil {
-		fmt.Printf("couldn't encode %v: %v\n", resp, err.Error())
-		return
-	}
-
-	_, err = w.Write(encoded)
-	if err != nil {
-		fmt.Printf("couldn't write encoded response %v: %v\n", encoded, err.Error())
-		return
-	}
 }

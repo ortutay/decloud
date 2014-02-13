@@ -73,26 +73,26 @@ func NewPaymentValue(str string) (*PaymentValue, error) {
 
 // TODO(ortutay): add types as appropriate
 type OcReq struct {
-	Id            []string      `json:"id,omitempty"`
-	Sig           []string      `json:"sig,omitempty"`
-	Nonce         string        `json:"nonce,omitempty"`
-	Service       string        `json:"service"`
-	Method        string        `json:"method"`
-	Args          []string      `json:"args,omitempty"`
-	PaymentType   PaymentType   `json:"paymentType,omitempty"`
-	PaymentValue  *PaymentValue `json:"paymentValue,omitempty"`
-	PaymentTxn    string        `json:"paymentTxn,omitempty"`
-	ContentLength int           `json:"contentLength,omitempty"`
-	Body          []byte        `json:"-"`
+	Id            []string        `json:"id,omitempty"`
+	Sig           []string        `json:"sig,omitempty"`
+	Nonce         string          `json:"nonce,omitempty"`
+	Service       string          `json:"service"`
+	Method        string          `json:"method"`
+	Args          json.RawMessage `json:"args,omitempty"`
+	PaymentType   PaymentType     `json:"paymentType,omitempty"`
+	PaymentValue  *PaymentValue   `json:"paymentValue,omitempty"`
+	PaymentTxn    string          `json:"paymentTxn,omitempty"`
+	ContentLength int             `json:"contentLength,omitempty"`
+	Body          []byte          `json:"-"`
 }
 
 func (r *OcReq) WriteSignablePortion(w io.Writer) error {
 	w.Write([]byte(r.Nonce))
 	w.Write([]byte(r.Service))
 	w.Write([]byte(r.Method))
-	for _, arg := range r.Args {
-		w.Write([]byte(arg))
-	}
+	// for _, arg := range r.Args {
+	// 	w.Write([]byte(arg))
+	// }
 	var s = string(r.PaymentType)
 	w.Write([]byte(s))
 	w.Write([]byte(r.PaymentTxn))
@@ -162,6 +162,7 @@ const (
 	CURRENCY_UNSUPPORTED = REQUEST_DECLINED + "/currency-unsupported"
 	PAYMENT_REQUIRED     = REQUEST_DECLINED + "/payment-required"
 	PAYMENT_DECLINED     = REQUEST_DECLINED + "/payment-declined"
+	INVALID_TXN          = PAYMENT_DECLINED + "/invalid-transaction"
 	TOO_LOW              = PAYMENT_DECLINED + "/too-low"
 	NO_DEFER             = PAYMENT_DECLINED + "/no-defer"
 )
@@ -178,11 +179,12 @@ type OcResp struct {
 
 func NewRespOk(body []byte) *OcResp {
 	resp := OcResp{
-		Id:     []string{},
-		Sig:    []string{},
-		Nonce:  "", // TODO(ortutay)
-		Status: OK,
-		Body:   body,
+		Id:            []string{},
+		Sig:           []string{},
+		Nonce:         "", // TODO(ortutay)
+		Status:        OK,
+		ContentLength: len(body),
+		Body:          body,
 	}
 	return &resp
 }
@@ -262,8 +264,8 @@ func msgString(v interface{}, body []byte) string {
 		return ""
 	}
 	if len(body) > 0 {
-		return buf.String() + "\n" + string(body)
+		return fmt.Sprintf("%s\n%s", buf.String(), string(body))
 	} else {
-		return buf.String() + "\n"
+		return fmt.Sprintf("%s\n", buf.String())
 	}
 }
