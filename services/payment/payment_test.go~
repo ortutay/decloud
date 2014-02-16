@@ -1,0 +1,14 @@
+package payment
+
+import (
+	"testing"
+	"github.com/ortutay/decloud/util"
+)
+
+func TestTxid(t *testing.T) {
+	btcConf, err := util.LoadBitcoindConf("")
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	ps := PaymentService{BitcoindConf: btcConf}
+}

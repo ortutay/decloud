@@ -1,0 +1,30 @@
+package payment
+
+import(
+	"encoding/json"
+	"github.com/ortutay/decloud/msg"
+)
+
+const (
+	SERVICE_NAME = "payment"
+)
+
+// TODO(ortutay): sign these reqs with an input to the txn to prove ownership
+func NewTxidReq(txid msg.BtcTxid) *msg.OcReq {
+	argsJson, err := json.Marshal(txid)
+	if err != nil {
+		panic(err)
+	}
+	msg := msg.OcReq{
+		Id:          []string{},
+		Sig:         []string{},
+		Nonce:       "",
+		Service:     "payment",
+		Method:      "",
+		Args:        argsJson,
+		PaymentType: msg.TXID,
+		Body:        []byte(""),
+	}
+	return &msg
+}
+
