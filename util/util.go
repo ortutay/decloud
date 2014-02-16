@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"github.com/conformal/btcjson"
 	"os"
 	"os/user"
 	"path"
@@ -50,6 +51,18 @@ func LoadBitcoindConf(filename string) (*BitcoindConf, error) {
 			fmt.Sprintf("%v missing one of rpcuser, rpcpassword, rpcport", filename))
 	}
 	return &conf, nil
+}
+
+func SendBtcRpc(msg btcjson.Cmd, conf *BitcoindConf) (*btcjson.Reply, error) {
+	json, err := msg.MarshalJSON()
+	if err != nil {
+		return nil, fmt.Errorf("error while marshaling: %v", err.Error())
+	}
+	resp, err := btcjson.RpcCommand(conf.User, conf.Password, conf.Server, json)
+	if err != nil {
+		return nil, fmt.Errorf("error during bitcoind JSON-RPC: %v", err.Error())
+	}
+	return &resp, nil
 }
 
 func GetAppData(filename string) (*os.File, error) {

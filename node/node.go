@@ -3,14 +3,17 @@ package node
 import (
 	"bufio"
 	"fmt"
+	"github.com/conformal/btcjson"
 	"github.com/ortutay/decloud/conf"
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
+	"github.com/ortutay/decloud/util"
 	"net"
 )
 
 type Client struct {
-	Cred *cred.Cred
+	BitcoindConf util.BitcoindConf
+	Cred         cred.Cred
 }
 
 func (c *Client) SendRequest(addr string, req *msg.OcReq) (*msg.OcResp, error) {
@@ -47,6 +50,22 @@ func (c *Client) SendRequest(addr string, req *msg.OcReq) (*msg.OcResp, error) {
 	}
 
 	return resp, nil
+}
+
+func (c *Client) SendBtcPayment(payVal *msg.PaymentValue, payAddr *msg.PaymentAddr) (msg.BtcTxid, error) {
+	if payVal.Currency != msg.BTC || payAddr.Currency != msg.BTC {
+		panic("unexpected currency: " + payVal.Currency + " " + payAddr.Currency)
+	}
+	cmd, err := btcjson.NewSendToAddressCmd("", payAddr.Addr, payVal.Amount)
+	if err != nil {
+		return "", fmt.Errorf("error while making cmd: %v", err.Error())
+	}
+	resp, err := util.SendBtcRpc(cmd, &c.BitcoindConf)
+	txid, ok := resp.Result.(string)
+	if !ok {
+		return "", fmt.Errorf("error during bitcoind JSON-RPC: %v", resp)
+	}
+	return msg.BtcTxid(txid), nil
 }
 
 type Handler interface {

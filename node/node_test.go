@@ -6,7 +6,7 @@ import (
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/services/calc"
-	"github.com/ortutay/decloud/services/info"
+	"github.com/ortutay/decloud/services/payment"
 	"github.com/ortutay/decloud/util"
 	"log"
 	"net"
@@ -15,13 +15,14 @@ import (
 
 var _ = fmt.Printf
 
-func newClient() (*Client, error) {
+func newClient(btcConf *util.BitcoindConf) (*Client, error) {
 	ocCred, err := cred.NewOcCred()
 	if err != nil {
 		return nil, err
 	}
 	c := Client{
-		Cred: &cred.Cred{
+		BitcoindConf: *btcConf,
+		Cred: cred.Cred{
 			Signers: []cred.Signer{ocCred},
 		},
 	}
@@ -48,7 +49,7 @@ func TestRoundTrip(t *testing.T) {
 	}
 	go s.Serve(listener)
 
-	c, err := newClient()
+	c, err := newClient(nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -91,7 +92,7 @@ func TestPaymentRequired(t *testing.T) {
 	}
 	go s.Serve(listener)
 
-	c, err := newClient()
+	c, err := newClient(nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -120,12 +121,12 @@ func TestPaymentRoundTrip(t *testing.T) {
 						Method:  calc.CALCULATE_METHOD,
 					},
 					Cmd:  conf.MIN_FEE,
-					Args: []interface{}{msg.PaymentValue{2, msg.BTC}},
+					Args: []interface{}{msg.PaymentValue{2e6, msg.BTC}},
 				},
 			},
 		},
 	}
-	services[info.SERVICE_NAME] = &info.InfoService{BitcoindConf: btcConf}
+	services[payment.SERVICE_NAME] = &payment.PaymentService{BitcoindConf: btcConf}
 	mux := ServiceMux{
 		Services: services,
 	}
@@ -140,7 +141,7 @@ func TestPaymentRoundTrip(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	c, err := newClient()
+	c, err := newClient(btcConf)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -168,7 +169,7 @@ func TestPaymentRoundTrip(t *testing.T) {
 	// Get payment address
 	go s.Serve(listener)
 	fmt.Printf("get payment addr\n")
-	payAddrReq := info.NewPaymentAddrReq(msg.BTC)
+	payAddrReq := payment.NewPaymentAddrReq(msg.BTC)
 	fmt.Printf("req: %v\n", payAddrReq)
 	resp, err = c.SendRequest(addr, payAddrReq)
 	if err != nil {
@@ -181,24 +182,43 @@ func TestPaymentRoundTrip(t *testing.T) {
 	fmt.Printf("resp: %v\npa: %v\n", resp, pa)
 
 	// Send low payment
+	// TODO(ortutay): separate test for this
 	go s.Serve(listener)
 	fmt.Printf("send req with deferred payment")
-	sendLowPv := msg.PaymentValue(*pv)
-	sendLowPv.Amount -= 1
+	lowPv := msg.PaymentValue(*pv)
+	lowPv.Amount -= 1
 	calcReqLowPv := msg.OcReq(*calcReq)
-	calcReqLowPv.AttachDeferredPayment(&sendLowPv)
+	calcReqLowPv.AttachDeferredPayment(&lowPv)
 	resp, err = c.SendRequest(addr, &calcReqLowPv)
 	if resp.Status != msg.TOO_LOW {
 		log.Fatalf("expected status %v, got %v", msg.TOO_LOW, resp.Status)
 	}
 
-	// Send requested payment
+	// Send requested payment as deferred
 	go s.Serve(listener)
 	fmt.Printf("send req with deferred payment")
-	sendPv := msg.PaymentValue(*pv)
-	calcReq.AttachDeferredPayment(&sendPv)
+	calcReq.AttachDeferredPayment(pv)
 	resp, err = c.SendRequest(addr, calcReq)
 	if resp.Status != msg.OK {
 		log.Fatalf("expected status %v, got %v", msg.OK, resp.Status)
 	}
+	fmt.Printf("resp: %v\n", resp)
+
+	// We got the response, now send the actual payment
+	// (normally, we would want to verify the results)
+	go s.Serve(listener)
+	txid, err := c.SendBtcPayment(pv, pa)
+	if err != nil {
+		log.Fatal(err)
+	}
+	txidReq := payment.NewBtcTxidReq(txid)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("txid req: %v\n", txidReq)
+	resp, err = c.SendRequest(addr, txidReq)
+	if resp.Status != msg.OK {
+		log.Fatalf("expected status %v, got %v", msg.OK, resp.Status)
+	}
+	fmt.Printf("resp: %v\n", resp)
 }

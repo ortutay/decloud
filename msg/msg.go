@@ -10,10 +10,12 @@ import (
 
 var _ = fmt.Printf
 
+type BtcTxid string
 type PaymentType string
 
 const (
 	NONE     PaymentType = "none"
+	TXID                 = "txid"
 	ATTACHED             = "attached"
 	DEFER                = "defer"
 )
@@ -163,6 +165,7 @@ const (
 	PAYMENT_REQUIRED     = REQUEST_DECLINED + "/payment-required"
 	PAYMENT_DECLINED     = REQUEST_DECLINED + "/payment-declined"
 	INVALID_TXN          = PAYMENT_DECLINED + "/invalid-transaction"
+	INVALID_TXID         = PAYMENT_DECLINED + "/invalid-txid"
 	TOO_LOW              = PAYMENT_DECLINED + "/too-low"
 	NO_DEFER             = PAYMENT_DECLINED + "/no-defer"
 )
