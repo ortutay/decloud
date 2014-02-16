@@ -1,11 +1,11 @@
 package payment
 
 import (
+	"github.com/conformal/btcjson"
+	"github.com/ortutay/decloud/msg"
+	"github.com/ortutay/decloud/util"
 	"log"
 	"testing"
-	"github.com/conformal/btcjson"
-	"github.com/ortutay/decloud/util"
-	"github.com/ortutay/decloud/msg"
 )
 
 func TestTxid(t *testing.T) {

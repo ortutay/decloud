@@ -1,22 +1,22 @@
 package payment
 
-import(
+import (
 	"encoding/json"
-	"github.com/conformal/btcjson"
 	"fmt"
+	"github.com/conformal/btcjson"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/util"
 )
 
 const (
-	SERVICE_NAME = "payment"
-	TXID_METHOD = "txid"
+	SERVICE_NAME        = "payment"
+	TXID_METHOD         = "txid"
 	PAYMENT_ADDR_METHOD = "paymentAddr"
 )
 
 type TxidArgs struct {
 	Currency msg.Currency `json:"currency"`
-	Txid string `json:"txid"`
+	Txid     string       `json:"txid"`
 }
 
 func NewPaymentAddrReq(currency msg.Currency) *msg.OcReq {
@@ -42,7 +42,7 @@ func NewPaymentAddrReq(currency msg.Currency) *msg.OcReq {
 func NewBtcTxidReq(txid msg.BtcTxid) *msg.OcReq {
 	txidArgs := TxidArgs{
 		Currency: msg.BTC,
-		Txid: string(txid),
+		Txid:     string(txid),
 	}
 	argsJson, err := json.Marshal(txidArgs)
 	if err != nil {
