@@ -64,8 +64,8 @@ func NewCalcReq(queries []string) *msg.OcReq {
 }
 
 type Work struct {
-	NumQueries int `json:"numQueries"`
-	NumBytes   int `json:"numBytes"`
+	Queries int `json:"queries"`
+	Bytes   int `json:"bytes"`
 }
 
 func (w *Work) String() string {
@@ -80,7 +80,8 @@ func NewWork(str string) (*Work, error) {
 	var work Work
 	err := json.Unmarshal([]byte(str), &work)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't create calc.Work from %v", str)
+		return nil, fmt.Errorf("couldn't create calc.Work from %v (%v)",
+			str, err.Error())
 	} else {
 		return &work, nil
 	}
@@ -103,14 +104,14 @@ func Measure(req *msg.OcReq) (*Work, error) {
 	}
 	var work Work
 	for _, q := range queries {
-		work.NumBytes += len(q)
-		work.NumQueries++
+		work.Bytes += len(q)
+		work.Queries++
 	}
 	return &work, nil
 }
 
 type CalcService struct {
-	Conf conf.Conf
+	Conf *conf.Conf
 }
 
 func (cs CalcService) paymentForWork(work *Work, method string) (*msg.PaymentValue, error) {

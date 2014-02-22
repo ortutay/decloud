@@ -87,7 +87,7 @@ func (sm *ServiceMux) Handle(req *msg.OcReq) (*msg.OcResp, error) {
 type Server struct {
 	Cred    *cred.Cred
 	Addr    string
-	Conf    conf.Conf
+	Conf    *conf.Conf
 	Handler Handler
 }
 

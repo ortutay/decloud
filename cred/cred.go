@@ -83,6 +83,12 @@ func (cred *OcCred) StorePrivateKey(filename string) error {
 	return nil
 }
 
+// func NewOcCredLoadOrCreate(filename string) (*OcCred, error) {
+// 	if filename == "" {
+// 		filename = PRIVATE_KEY_FILENAME
+// 	}
+// }
+
 func NewOcCredLoadFromFile(filename string) (*OcCred, error) {
 	if filename == "" {
 		filename = PRIVATE_KEY_FILENAME
