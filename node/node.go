@@ -12,7 +12,7 @@ import (
 )
 
 type Client struct {
-	BitcoindConf util.BitcoindConf
+	BitcoindConf *util.BitcoindConf
 	Cred         cred.Cred
 }
 
@@ -60,7 +60,7 @@ func (c *Client) SendBtcPayment(payVal *msg.PaymentValue, payAddr *msg.PaymentAd
 	if err != nil {
 		return "", fmt.Errorf("error while making cmd: %v", err.Error())
 	}
-	resp, err := util.SendBtcRpc(cmd, &c.BitcoindConf)
+	resp, err := util.SendBtcRpc(cmd, c.BitcoindConf)
 	txid, ok := resp.Result.(string)
 	if !ok {
 		return "", fmt.Errorf("error during bitcoind JSON-RPC: %v", resp)
@@ -154,24 +154,24 @@ func (s *Server) Serve(listener net.Listener) error {
 
 func (s *Server) isAllowedByPolicy(req *msg.OcReq) (bool, msg.OcRespStatus) {
 	fmt.Printf("is allowed? %v\n", s)
-	policies := s.Conf.MatchingPolicies(req.Service, req.Method)
-	for _, policy := range policies {
-		fmt.Printf("check against policy: %v\n", policy)
-		switch policy.Cmd {
-		case conf.ALLOW:
-			continue
-		case conf.DENY:
-			return false, msg.ACCESS_DENIED
-		case conf.MIN_FEE:
-			min := policy.Args[0].(msg.PaymentValue)
-			fmt.Printf("min fee: %v, pt: %v\n", min, req.PaymentType)
-			if req.PaymentType != msg.ATTACHED {
-				return false, msg.PAYMENT_REQUIRED
-			}
+	// policies := s.Conf.MatchingPolicies(req.Service, req.Method)
+	// for _, policy := range policies {
+	// 	fmt.Printf("check against policy: %v\n", policy)
+	// 	switch policy.Cmd {
+	// 	case conf.ALLOW:
+	// 		continue
+	// 	case conf.DENY:
+	// 		return false, msg.ACCESS_DENIED
+	// 	case conf.MIN_FEE:
+	// 		min := policy.Args[0].(msg.PaymentValue)
+	// 		fmt.Printf("min fee: %v, pt: %v\n", min, req.PaymentType)
+	// 		if req.PaymentType != msg.ATTACHED {
+	// 			return false, msg.PAYMENT_REQUIRED
+	// 		}
 
-			// TODO(ortutay): implement
-			return false, msg.SERVER_ERROR
-		}
-	}
+	// 		// TODO(ortutay): implement
+	// 		return false, msg.SERVER_ERROR
+	// 	}
+	// }
 	return true, msg.OK
 }

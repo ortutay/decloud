@@ -79,6 +79,9 @@ func makeConf(minFeeFlag string, minCoinsFlag string, maxWorkFlag string) (*conf
 		if err != nil {
 			return nil, err
 		}
+		// TODO(ortutay): is there a better way to do this type conversion?
+		pvp := policy.Args[0].(*msg.PaymentValue)
+		policy.Args[0] = *pvp
 		policies = append(policies, *policy)
 	}
 
@@ -88,6 +91,9 @@ func makeConf(minFeeFlag string, minCoinsFlag string, maxWorkFlag string) (*conf
 		if err != nil {
 			return nil, err
 		}
+		// TODO(ortutay): is there a better way to do this type conversion?
+		pvp := policy.Args[0].(*msg.PaymentValue)
+		policy.Args[0] = *pvp
 		policies = append(policies, *policy)
 	}
 
@@ -97,6 +103,8 @@ func makeConf(minFeeFlag string, minCoinsFlag string, maxWorkFlag string) (*conf
 		if err != nil {
 			return nil, err
 		}
+		// TODO(ortutay): I guess we have to do type conversion here also...
+		// but can't easily...
 		policies = append(policies, *policy)
 	}
 

@@ -21,7 +21,7 @@ func newClient(btcConf *util.BitcoindConf) (*Client, error) {
 		return nil, err
 	}
 	c := Client{
-		BitcoindConf: *btcConf,
+		BitcoindConf: btcConf,
 		Cred: cred.Cred{
 			Signers: []cred.Signer{ocCred},
 		},
@@ -70,20 +70,21 @@ func TestRoundTrip(t *testing.T) {
 
 func TestPaymentRequired(t *testing.T) {
 	addr := ":9443"
-	handler := calc.CalcService{}
+	conf := conf.Conf{
+		Policies: []conf.Policy{
+			conf.Policy{
+				Selector: conf.PolicySelector{},
+				Cmd:      conf.MIN_FEE,
+				Args:     []interface{}{msg.PaymentValue{1, msg.BTC}},
+			},
+		},
+	}
+	handler := calc.CalcService{Conf: &conf}
 	s := Server{
 		Cred:    &cred.Cred{},
 		Addr:    addr,
 		Handler: handler,
-		Conf: conf.Conf{
-			Policies: []conf.Policy{
-				conf.Policy{
-					Selector: conf.PolicySelector{},
-					Cmd:      conf.MIN_FEE,
-					Args:     []interface{}{msg.PaymentValue{1, msg.BTC}},
-				},
-			},
-		},
+		Conf: &conf,
 	}
 	listener, err := net.Listen("tcp", s.Addr)
 	defer listener.Close()
@@ -107,13 +108,13 @@ func TestPaymentRoundTrip(t *testing.T) {
 	printBitcoindExpected()
 	btcConf, err := util.LoadBitcoindConf("")
 	if err != nil {
-		t.Errorf("%v", err)
+		t.Errorf(err.Error())
 	}
 
 	addr := ":9443"
 	services := make(map[string]Handler)
 	services[calc.SERVICE_NAME] = calc.CalcService{
-		Conf: conf.Conf{
+		Conf: &conf.Conf{
 			Policies: []conf.Policy{
 				conf.Policy{
 					Selector: conf.PolicySelector{

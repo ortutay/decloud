@@ -16,13 +16,22 @@ var _ = fmt.Printf
 
 const (
 	SERVICE_NAME     = "calc"
-	CALCULATE_METHOD = "calculate"
+	CALCULATE_METHOD = "calc"
 	QUOTE_METHOD     = "quote"
 )
 
 type QuoteArgs struct {
 	Method string `json:"method"`
 	Work   *Work  `json:"work"`
+}
+
+func NewQuoteReqFromReq(orig *msg.OcReq) (*msg.OcReq, error) {
+	work, err := Measure(orig)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't measure work: %v", err.Error())
+	}
+	req := NewQuoteReq(work)
+	return req, nil
 }
 
 func NewQuoteReq(work *Work) *msg.OcReq {
@@ -115,6 +124,9 @@ type CalcService struct {
 }
 
 func (cs CalcService) paymentForWork(work *Work, method string) (*msg.PaymentValue, error) {
+	if cs.Conf == nil {
+		return &msg.PaymentValue{Amount: 0, Currency: msg.BTC}, nil
+	}
 	matching := cs.Conf.MatchingPolicies(SERVICE_NAME, method)
 	minFees := make([]*conf.Policy, 0)
 	for _, policy := range matching {

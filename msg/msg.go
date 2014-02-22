@@ -259,12 +259,12 @@ func writeMsg(v interface{}, body []byte, w io.Writer) error {
 func msgString(v interface{}, body []byte) string {
 	b, err := json.Marshal(v)
 	if err != nil {
-		return ""
+		return fmt.Sprintf("error converting to string: %v", err.Error())
 	}
 	var buf bytes.Buffer
 	err = json.Indent(&buf, b, "", "  ")
 	if err != nil {
-		return ""
+		return fmt.Sprintf("error converting to string: %v", err.Error())
 	}
 	if len(body) > 0 {
 		return fmt.Sprintf("%s\n%s", buf.String(), string(body))
