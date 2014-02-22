@@ -50,10 +50,11 @@ func TestGetSelectorUnsupportedService(t *testing.T) {
 }
 
 func TestGetPaymentValue(t *testing.T) {
-	pv, err := getPaymentValue(".1BTC")
+	pvI, err := getPaymentValue("", ".1BTC")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
+	pv := pvI.(*msg.PaymentValue)
 	if msg.BTC != pv.Currency {
 		t.Fatalf("expected %v, got %v", msg.BTC, pv.Currency)
 	}
@@ -63,10 +64,11 @@ func TestGetPaymentValue(t *testing.T) {
 }
 
 func TestGetPaymentValueAlternateFormat(t *testing.T) {
-	pv, err := getPaymentValue("2.1 BTC")
+	pvI, err := getPaymentValue("", "2.1 BTC")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
+	pv := pvI.(*msg.PaymentValue)
 	if msg.BTC != pv.Currency {
 		t.Fatalf("expected %v, got %v", msg.BTC, pv.Currency)
 	}
@@ -76,7 +78,7 @@ func TestGetPaymentValueAlternateFormat(t *testing.T) {
 }
 
 func TestGetPaymentValueOverMaxPrecision(t *testing.T) {
-	_, err := getPaymentValue(".123456789BTC")
+	_, err := getPaymentValue("", ".123456789BTC")
 	if err == nil {
 		t.FailNow()
 	}

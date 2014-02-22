@@ -75,68 +75,29 @@ func makeConf(minFeeFlag string, minCoinsFlag string, maxWorkFlag string) (*conf
 
 	// Parse min fees
  	for _, minFeeArg := range minFeeArgs {
-		s := strings.Split(minFeeArg, "=")
-		if len(s) != 2 {
-			return nil, fmt.Errorf("could not parse: %v", minFeeArg)
-		}
-		psel, err := getSelector(s[0])
+		policy, err := getPolicy(minFeeArg, conf.MIN_FEE, getPaymentValue)
 		if err != nil {
 			return nil, err
 		}
-		pv, err := getPaymentValue(s[1])
-		if err != nil {
-			return nil, err
-		}
-		policy := conf.Policy{
-			Selector: *psel,
-			Cmd: conf.MIN_FEE,
-			Args: []interface{}{pv},
-		}
-		policies = append(policies, policy)
+		policies = append(policies, *policy)
 	}
 
 	// Parse min coins
  	for _, minCoinsArg := range minCoinsArgs {
-		s := strings.Split(minCoinsArg, "=")
-		if len(s) != 2 {
-			return nil, fmt.Errorf("could not parse: %v", minCoinsArg)
-		}
-		psel, err := getSelector(s[0])
+		policy, err := getPolicy(minCoinsArg, conf.MIN_COINS, getPaymentValue)
 		if err != nil {
 			return nil, err
 		}
-		pv, err := getPaymentValue(s[1])
-		if err != nil {
-			return nil, err
-		}
-		policy := conf.Policy{
-			Selector: *psel,
-			Cmd: conf.MIN_COINS,
-			Args: []interface{}{pv},
-		}
-		policies = append(policies, policy)
+		policies = append(policies, *policy)
 	}
 
 	// Parse max work
 	for _, maxWorkArg := range maxWorkArgs {
-		s := strings.SplitN(maxWorkArg, "=", 2)
-		if len(s) != 2 {
-			return nil, fmt.Errorf("could not parse: %v", maxWorkArg)
-		}
-		psel, err := getSelector(s[0])
+		policy, err := getPolicy(maxWorkArg, conf.MAX_WORK, getWork)
 		if err != nil {
 			return nil, err
 		}
-		work, err := getWork(psel.Service, psel.Method, s[1])
-		if err != nil {
-			return nil, err
-		}
-		policy := conf.Policy{
-			Selector: *psel,
-			Cmd: conf.MAX_WORK,
-			Args: []interface{}{work},
-		}
-		policies = append(policies, policy)
+		policies = append(policies, *policy)
 	}
 
 	conf := conf.Conf{
@@ -144,6 +105,27 @@ func makeConf(minFeeFlag string, minCoinsFlag string, maxWorkFlag string) (*conf
 		BtcAddr: "",
 	}
 	return &conf, nil
+}
+
+func getPolicy(arg string, cmd conf.PolicyCmd, parse func (string, string) (interface{}, error)) (*conf.Policy, error) {
+	s := strings.Split(arg, "=")
+	if len(s) != 2 {
+		return nil, fmt.Errorf("could not parse: %v", arg)
+	}
+	psel, err := getSelector(s[0])
+	if err != nil {
+		return nil, err
+	}
+	pArg, err := parse(s[0], s[1])
+	if err != nil {
+		return nil, err
+	}
+	policy := conf.Policy{
+		Selector: *psel,
+		Cmd: cmd,
+		Args: []interface{}{pArg},
+	}
+	return &policy, err
 }
 
 func getSelector(sel string) (*conf.PolicySelector, error) {
@@ -175,7 +157,7 @@ func getSelector(sel string) (*conf.PolicySelector, error) {
 	return &conf.PolicySelector{Service: service, Method: method}, nil
 }
 
-func getPaymentValue(pv string) (*msg.PaymentValue, error) {
+func getPaymentValue(srvMeth, pv string) (interface{}, error) {
 	re := regexp.MustCompile("(?i)([0-9.]+) *(btc)")
 	m := re.FindStringSubmatch(pv)
 	if len(m) != 3 {
@@ -199,12 +181,11 @@ func getPaymentValue(pv string) (*msg.PaymentValue, error) {
 	return &msg.PaymentValue{Amount: satoshis, Currency: msg.BTC}, nil
 }
 
-func getWork(service, method, w string) (interface{}, error) {
-	switch service + "." + method {
+func getWork(srvMeth, w string) (interface{}, error) {
+	switch srvMeth {
 	case "calc.calc":
 		return calc.NewWork(w)
 	default:
-		return nil, fmt.Errorf("no support for work flag for %v.%v",
-			service, method)
+		return nil, fmt.Errorf("no support for work flag for %v", srvMeth)
 	}
 }
