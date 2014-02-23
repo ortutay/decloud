@@ -1,21 +1,21 @@
 package main
 
 import (
-	"strconv"
-	"math/big"
-	"regexp"
-	"strings"
 	"fmt"
-	"os"
-	"log"
 	"github.com/droundy/goopt"
 	"github.com/ortutay/decloud/conf"
-	"github.com/ortutay/decloud/msg"
-	"github.com/ortutay/decloud/util"
 	"github.com/ortutay/decloud/cred"
+	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/node"
 	"github.com/ortutay/decloud/services/calc"
 	"github.com/ortutay/decloud/services/payment"
+	"github.com/ortutay/decloud/util"
+	"log"
+	"math/big"
+	"os"
+	"regexp"
+	"strconv"
+	"strings"
 )
 
 // var fTestNet = goopt.Flag([]string{"-t", "--test-net"}, []string{"--main-net"}, "Use testnet", "Use mainnet")
@@ -63,9 +63,9 @@ func main() {
 		Services: services,
 	}
 	s := node.Server{
-		Cred: &cred.Cred{Signers: []cred.Signer{ocID}},
-		Conf: conf,
-		Addr: addr,
+		Cred:    &cred.Cred{Signers: []cred.Signer{ocID}},
+		Conf:    conf,
+		Addr:    addr,
 		Handler: &mux,
 	}
 	err = s.ListenAndServe()
@@ -81,7 +81,7 @@ func makeConf(minFeeFlag string, minCoinsFlag string, maxWorkFlag string) (*conf
 	policies := make([]conf.Policy, 0)
 
 	// Parse min fees
- 	for _, minFeeArg := range minFeeArgs {
+	for _, minFeeArg := range minFeeArgs {
 		policy, err := getPolicy(minFeeArg, conf.MIN_FEE, getPaymentValue)
 		if err != nil {
 			return nil, err
@@ -93,7 +93,7 @@ func makeConf(minFeeFlag string, minCoinsFlag string, maxWorkFlag string) (*conf
 	}
 
 	// Parse min coins
- 	for _, minCoinsArg := range minCoinsArgs {
+	for _, minCoinsArg := range minCoinsArgs {
 		policy, err := getPolicy(minCoinsArg, conf.MIN_COINS, getPaymentValue)
 		if err != nil {
 			return nil, err
@@ -117,12 +117,12 @@ func makeConf(minFeeFlag string, minCoinsFlag string, maxWorkFlag string) (*conf
 
 	conf := conf.Conf{
 		Policies: policies,
-		BtcAddr: "",
+		BtcAddr:  "",
 	}
 	return &conf, nil
 }
 
-func getPolicy(arg string, cmd conf.PolicyCmd, parse func (string, string) (interface{}, error)) (*conf.Policy, error) {
+func getPolicy(arg string, cmd conf.PolicyCmd, parse func(string, string) (interface{}, error)) (*conf.Policy, error) {
 	s := strings.Split(arg, "=")
 	if len(s) != 2 {
 		return nil, fmt.Errorf("could not parse: %v", arg)
@@ -137,8 +137,8 @@ func getPolicy(arg string, cmd conf.PolicyCmd, parse func (string, string) (inte
 	}
 	policy := conf.Policy{
 		Selector: *psel,
-		Cmd: cmd,
-		Args: []interface{}{pArg},
+		Cmd:      cmd,
+		Args:     []interface{}{pArg},
 	}
 	return &policy, err
 }

@@ -25,8 +25,10 @@ func NewPaymentAddrReq(currency msg.Currency) *msg.OcReq {
 		panic(err)
 	}
 	msg := msg.OcReq{
-		Id:          []string{},
-		Sig:         []string{},
+		Id:          "",
+		Sig:         "",
+		Coins:       []string{},
+		CoinSigs:    []string{},
 		Nonce:       "",
 		Service:     SERVICE_NAME,
 		Method:      PAYMENT_ADDR_METHOD,
@@ -49,8 +51,10 @@ func NewBtcTxidReq(txid msg.BtcTxid) *msg.OcReq {
 		panic(err)
 	}
 	msg := msg.OcReq{
-		Id:          []string{},
-		Sig:         []string{},
+		Id:          "",
+		Sig:         "",
+		Coins:       []string{},
+		CoinSigs:    []string{},
 		Nonce:       "",
 		Service:     SERVICE_NAME,
 		Method:      TXID_METHOD,

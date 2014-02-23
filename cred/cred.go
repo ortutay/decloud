@@ -31,8 +31,8 @@ type Signer interface {
 }
 
 type Cred struct {
-	OcID    OcID
-	Coins   []BtcCred
+	OcID  OcID
+	Coins []BtcCred
 }
 
 func (c *Cred) SignOcReq(req *msg.OcReq, bConf *util.BitcoindConf) error {

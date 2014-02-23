@@ -12,8 +12,8 @@ import (
 )
 
 type Client struct {
-	BitcoindConf *util.BitcoindConf
-	Cred         cred.Cred
+	BtcConf *util.BitcoindConf
+	Cred    cred.Cred
 }
 
 func (c *Client) SendRequest(addr string, req *msg.OcReq) (*msg.OcResp, error) {
@@ -29,7 +29,7 @@ func (c *Client) SendRequest(addr string, req *msg.OcReq) (*msg.OcResp, error) {
 
 	// TODO(ortutay): add nonce
 
-	err := c.Cred.SignOcReq(req)
+	err := c.Cred.SignOcReq(req, c.BtcConf)
 	if err != nil {
 		return nil, fmt.Errorf("error while signing: %v", err.Error())
 	}
@@ -60,7 +60,7 @@ func (c *Client) SendBtcPayment(payVal *msg.PaymentValue, payAddr *msg.PaymentAd
 	if err != nil {
 		return "", fmt.Errorf("error while making cmd: %v", err.Error())
 	}
-	resp, err := util.SendBtcRpc(cmd, c.BitcoindConf)
+	resp, err := util.SendBtcRpc(cmd, c.BtcConf)
 	txid, ok := resp.Result.(string)
 	if !ok {
 		return "", fmt.Errorf("error during bitcoind JSON-RPC: %v", resp)

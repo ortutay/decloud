@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/ortutay/decloud/msg"
 	"strings"
 	"testing"
-	"github.com/ortutay/decloud/msg"
 )
 
 func TestMakeConf(t *testing.T) {

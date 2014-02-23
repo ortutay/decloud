@@ -17,8 +17,8 @@ func TestReadWriteOcReq(t *testing.T) {
 	req := OcReq{
 		Id:            "id1",
 		Sig:           "sig1",
-		Coins: []string{"1addr1", "1addr2"},
-		CoinSigs: []string{"addr1sig", "addr2sig"},
+		Coins:         []string{"1addr1", "1addr2"},
+		CoinSigs:      []string{"addr1sig", "addr2sig"},
 		Nonce:         "abcnonce",
 		Service:       "testService",
 		Method:        "testMethod",
@@ -49,8 +49,8 @@ func TestReadWriteOcResp(t *testing.T) {
 	resp := OcResp{
 		Id:            "id1",
 		Sig:           "sig1",
-		Coins: []string{"1addr1", "1addr2"},
-		CoinSigs: []string{"addr1sig", "addr2sig"},
+		Coins:         []string{"1addr1", "1addr2"},
+		CoinSigs:      []string{"addr1sig", "addr2sig"},
 		Nonce:         "abcnonce",
 		Status:        OK,
 		ContentLength: len(body),

@@ -9,11 +9,11 @@ type BtcAddr string
 type PolicyCmd string
 
 const (
-	ALLOW   PolicyCmd = "allow"
-	DENY              = "deny"
-	MIN_FEE           = "min-fee"
-	MIN_COINS = "min-coins"
-	MAX_WORK = "max-work"
+	ALLOW     PolicyCmd = "allow"
+	DENY                = "deny"
+	MIN_FEE             = "min-fee"
+	MIN_COINS           = "min-coins"
+	MAX_WORK            = "max-work"
 	// TODO(ortutay): add rate-limit
 	// TODO(ortutay): additional policy commands
 )

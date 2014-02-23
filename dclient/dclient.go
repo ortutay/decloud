@@ -1,16 +1,16 @@
 package main
 
 import (
-	"os"
-	"strings"
 	"fmt"
-	"github.com/ortutay/decloud/node"
-	"github.com/ortutay/decloud/util"
+	"github.com/droundy/goopt"
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
+	"github.com/ortutay/decloud/node"
 	"github.com/ortutay/decloud/services/calc"
-	"github.com/droundy/goopt"
+	"github.com/ortutay/decloud/util"
 	"log"
+	"os"
+	"strings"
 )
 
 var fAddr = goopt.String([]string{"-a", "--addr"}, "", "Remote host address")

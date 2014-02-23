@@ -21,9 +21,10 @@ func newClient(btcConf *util.BitcoindConf) (*Client, error) {
 		return nil, err
 	}
 	c := Client{
-		BitcoindConf: btcConf,
+		BtcConf: btcConf,
 		Cred: cred.Cred{
-			Signers: []cred.Signer{ocID},
+			OcID:  *ocID,
+			Coins: []cred.BtcCred{},
 		},
 	}
 	return &c, nil
@@ -84,7 +85,7 @@ func TestPaymentRequired(t *testing.T) {
 		Cred:    &cred.Cred{},
 		Addr:    addr,
 		Handler: handler,
-		Conf: &conf,
+		Conf:    &conf,
 	}
 	listener, err := net.Listen("tcp", s.Addr)
 	defer listener.Close()

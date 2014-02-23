@@ -1,7 +1,6 @@
 package util
 
 import (
-	"regexp"
 	"bufio"
 	"errors"
 	"fmt"
@@ -9,6 +8,7 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"regexp"
 	"strings"
 )
 
