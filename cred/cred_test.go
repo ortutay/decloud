@@ -15,8 +15,10 @@ var _ = fmt.Printf
 
 func newReq() *msg.OcReq {
 	msg := msg.OcReq{
-		Id:          []string{},
-		Sig:         []string{},
+		Id:          "",
+		Sig:         "",
+		Coins:       []string{},
+		CoinSigs:    []string{},
 		Nonce:       "",
 		Service:     "storage",
 		Method:      "get",
@@ -73,24 +75,20 @@ func TestSignRequest(t *testing.T) {
 
 	ocID, err := NewOcID()
 	if err != nil {
-		t.Errorf("%v", err)
+		t.Fatalf("%v", err)
 	}
 
 	err = ocID.SignOcReq(ocReq)
 	if err != nil {
-		t.Errorf("%v", err)
-	}
-	if len(ocReq.Id) != 1 || len(ocReq.Sig) != 1 {
-		t.Errorf("expected exactly 1 id and sig, got %v %v",
-			len(ocReq.Id), len(ocReq.Sig))
+		t.Fatalf("%v", err)
 	}
 
 	ok, err := VerifyOcReqSig(ocReq, nil)
 	if err != nil {
-		t.Errorf("%v", err)
+		t.Fatalf("%v", err)
 	}
 	if !ok {
-		t.Errorf("sig did not verify")
+		t.Fatalf("sig did not verify")
 	}
 }
 
@@ -106,25 +104,25 @@ func TestInvalidOcSignatureFails(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 
-	originalSig := ocReq.Sig[0]
-	ocReq.Sig[0] = originalSig[0:len(originalSig)-2] + "1"
+	originalSig := ocReq.Sig
+	ocReq.Sig = originalSig[0:len(originalSig)-2] + "1"
 	if ok, _ := VerifyOcReqSig(ocReq, nil); ok {
-		t.Errorf("invalid sig %v verified", ocReq.Sig[0])
+		t.Errorf("invalid sig %v verified", ocReq.Sig)
 	}
 
-	ocReq.Sig[0] = originalSig + "x"
+	ocReq.Sig = originalSig + "x"
 	if ok, _ := VerifyOcReqSig(ocReq, nil); ok {
-		t.Errorf("invalid sig %v verified", ocReq.Sig[0])
+		t.Errorf("invalid sig %v verified", ocReq.Sig)
 	}
 
-	originalId := ocReq.Id[0]
-	ocReq.Id[0] = originalId[1:] + "1"
+	originalId := ocReq.Id
+	ocReq.Id = originalId[1:] + "1"
 	if ok, _ := VerifyOcReqSig(ocReq, nil); ok {
-		t.Errorf("invalid node id %v verified", ocReq.Id[0])
+		t.Errorf("invalid node id %v verified", ocReq.Id)
 	}
 
 	if ok, _ := VerifyOcReqSig(ocReq, nil); ok {
-		t.Errorf("invalid node id %v verified", ocReq.Id[0])
+		t.Errorf("invalid node id %v verified", ocReq.Id)
 	}
 }
 
@@ -228,21 +226,21 @@ func TestInvalidBtcSignatureFails(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 
-	originalSig := ocReq.Sig[0]
-	ocReq.Sig[0] = originalSig[0:len(originalSig)-2] + "1"
+	originalSig := ocReq.CoinSigs[0]
+	ocReq.CoinSigs[0] = originalSig[0:len(originalSig)-2] + "1"
 	ok, err := VerifyOcReqSig(ocReq, conf)
 	if ok {
-		t.Errorf("invalid sig %v verified", ocReq.Sig[0])
+		t.Errorf("invalid sig %v verified", ocReq.CoinSigs[0])
 	}
 	if err == nil || err.Error() != "-5: Malformed base64 encoding" {
 		t.Errorf("expected malformed base64 encoding error, but got  %v", err)
 	}
 
-	originalId := ocReq.Id[0]
-	ocReq.Id[0] = originalId[0:len(originalId)-2] + "1"
+	originalId := ocReq.Coins[0]
+	ocReq.Coins[0] = originalId[0:len(originalId)-2] + "1"
 	ok, err = VerifyOcReqSig(ocReq, conf)
 	if ok {
-		t.Errorf("invalid node id %v verified", ocReq.Id[0])
+		t.Errorf("invalid node id %v verified", ocReq.Coins[0])
 	}
 	if err == nil || err.Error() != "-3: Invalid address" {
 		t.Errorf("expected invalid address error, but got  %v", err)

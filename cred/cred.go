@@ -31,12 +31,19 @@ type Signer interface {
 }
 
 type Cred struct {
-	Signers []Signer
+	OcID    OcID
+	Coins   []BtcCred
+	BtcConf *util.BitcoindConf
 }
 
-func (cred *Cred) SignOcReq(req *msg.OcReq) error {
-	for _, signer := range cred.Signers {
-		err := signer.SignOcReq(req)
+func (c *Cred) SignOcReq(req *msg.OcReq) error {
+	err := c.OcID.SignOcReq(req)
+	if err != nil {
+		return fmt.Errorf("error while signing: %v", err.Error())
+	}
+
+	for _, coin := range c.Coins {
+		err := coin.SignOcReq(req, c.BtcConf)
 		if err != nil {
 			return fmt.Errorf("error while signing: %v", err.Error())
 		}
@@ -69,18 +76,6 @@ func NewOcID() (*OcID, error) {
 		Priv: priv,
 	}
 	return &ocID, nil
-}
-
-func (cred *OcID) StorePrivateKey(filename string) error {
-	if filename == "" {
-		filename = PRIVATE_KEY_FILENAME
-	}
-	d := fmt.Sprintf("%x\n", cred.Priv.D)
-	err := util.StoreAppData(filename, []byte(d), 0600)
-	if err != nil {
-		return fmt.Errorf("error storing app data: %v", err.Error())
-	}
-	return nil
 }
 
 func NewOcIDLoadOrCreate(filename string) (*OcID, error) {
@@ -145,8 +140,19 @@ func getReqSigDataHash(req *msg.OcReq) ([]byte, error) {
 	return h, nil
 }
 
-// TODO(ortutay): move sign and verify to msg?
-func (cred *OcID) SignOcReq(req *msg.OcReq) error {
+func (o *OcID) StorePrivateKey(filename string) error {
+	if filename == "" {
+		filename = PRIVATE_KEY_FILENAME
+	}
+	d := fmt.Sprintf("%x\n", o.Priv.D)
+	err := util.StoreAppData(filename, []byte(d), 0600)
+	if err != nil {
+		return fmt.Errorf("error storing app data: %v", err.Error())
+	}
+	return nil
+}
+
+func (o *OcID) SignOcReq(req *msg.OcReq) error {
 	h, err := getReqSigDataHash(req)
 	if err != nil {
 		return err
@@ -158,44 +164,42 @@ func (cred *OcID) SignOcReq(req *msg.OcReq) error {
 		return errors.New("error generating random bytes")
 	}
 
-	r, s, err := ecdsa.Sign(bytes.NewReader(randBytes), cred.Priv, h)
+	r, s, err := ecdsa.Sign(bytes.NewReader(randBytes), o.Priv, h)
 	if err != nil {
 		return fmt.Errorf("error during ECDSA signature: %v", err.Error())
 	}
 	// TODO(ortutay): compress pub key
-	req.Id = append(req.Id, fmt.Sprintf("%c%x,%x",
-		OC_ID_PREFIX, cred.Priv.PublicKey.X, cred.Priv.PublicKey.Y))
-	req.Sig = append(req.Sig, fmt.Sprintf("%x,%x", r, s))
+	req.Id = fmt.Sprintf("%c%x,%x",
+		OC_ID_PREFIX, o.Priv.PublicKey.X, o.Priv.PublicKey.Y)
+	req.Sig = fmt.Sprintf("%x,%x", r, s)
 
 	return nil
 }
 
 func VerifyOcReqSig(req *msg.OcReq, conf *util.BitcoindConf) (bool, error) {
-	if len(req.Id) != len(req.Sig) {
-		return false, nil
-	}
-
 	h, err := getReqSigDataHash(req)
 	if err != nil {
 		return false, err
 	}
 
-	for i, _ := range req.Id {
-		nodeId := req.Id[i]
-		sig := req.Sig[i]
-		fmt.Printf("verify %v %v\n", nodeId, sig)
+	if req.Id != "" {
+		ok := verifyOcSig(h, req.Id, req.Sig)
+		if !ok {
+			return false, nil
+		}
+	}
 
-		switch nodeId[0] {
-		case OC_ID_PREFIX:
-			ok := verifyOcSig(h, nodeId, sig)
-			if !ok {
-				return false, nil
-			}
+	for i, _ := range req.Coins {
+		coin := req.Coins[i]
+		coinSig := req.CoinSigs[i]
+		fmt.Printf("verify %v %v\n", coin, coinSig)
+
+		switch coin[0] {
 		case '1', 'm', 'n':
 			if conf == nil {
 				return false, errors.New("need bitcoind conf to verify btc cred")
 			}
-			ok, err := verifyBtcSig(h, nodeId, sig, conf)
+			ok, err := verifyBtcSig(h, coin, coinSig, conf)
 			if err != nil {
 				return false, err
 			}
@@ -204,21 +208,21 @@ func VerifyOcReqSig(req *msg.OcReq, conf *util.BitcoindConf) (bool, error) {
 			}
 		default:
 			return false, errors.New(
-				fmt.Sprintf("unexpected id prefix: %c", nodeId[0]))
+				fmt.Sprintf("unexpected id prefix: %c", coin[0]))
 		}
 	}
 
 	return true, nil
 }
 
-func verifyOcSig(reqHash []byte, nodeId string, sig string) bool {
-	nodeIdReader := strings.NewReader(nodeId)
+func verifyOcSig(reqHash []byte, ocID string, sig string) bool {
+	ocIDReader := strings.NewReader(ocID)
 	var x, y, r, s big.Int
-	n, err := fmt.Fscanf(nodeIdReader, string(OC_ID_PREFIX)+"%x,%x", &x, &y)
+	n, err := fmt.Fscanf(ocIDReader, string(OC_ID_PREFIX)+"%x,%x", &x, &y)
 	if err != nil {
 		return false
 	}
-	n, err = nodeIdReader.Read(make([]byte, 1))
+	n, err = ocIDReader.Read(make([]byte, 1))
 	if n != 0 || err != io.EOF {
 		return false
 	}
@@ -266,8 +270,8 @@ func (bc *BtcCred) SignOcReq(req *msg.OcReq, conf *util.BitcoindConf) error {
 		return errors.New("error during bitcoind JSON-RPC")
 	}
 
-	req.Id = append(req.Id, fmt.Sprintf(bc.Addr))
-	req.Sig = append(req.Sig, fmt.Sprintf(sig))
+	req.Coins = append(req.Coins, fmt.Sprintf(bc.Addr))
+	req.CoinSigs = append(req.CoinSigs, fmt.Sprintf(sig))
 
 	return nil
 }
