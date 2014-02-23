@@ -14,16 +14,18 @@ import (
 )
 
 var fAddr = goopt.String([]string{"-a", "--addr"}, "", "Remote host address")
+var fAppDir = goopt.String([]string{"--app-dir"}, "~/.decloud", "")
 
 func main() {
 	goopt.Parse(nil)
-	bConf, err := util.LoadBitcoindConf("")
+	util.SetAppDir(*fAppDir)
+
+	ocCred, err := cred.NewOcCredLoadOrCreate("")
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	// TODO(ortutay): check for existing
-	ocCred, err := cred.NewOcCred()
+	bConf, err := util.LoadBitcoindConf("")
 	if err != nil {
 		log.Fatal(err.Error())
 	}

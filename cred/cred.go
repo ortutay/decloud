@@ -83,11 +83,25 @@ func (cred *OcCred) StorePrivateKey(filename string) error {
 	return nil
 }
 
-// func NewOcCredLoadOrCreate(filename string) (*OcCred, error) {
-// 	if filename == "" {
-// 		filename = PRIVATE_KEY_FILENAME
-// 	}
-// }
+func NewOcCredLoadOrCreate(filename string) (*OcCred, error) {
+	if filename == "" {
+		filename = PRIVATE_KEY_FILENAME
+	}
+	file, _ := util.GetAppData(filename)
+	if file != nil {
+		return NewOcCredLoadFromFile(filename)
+	} else {
+		ocCred, err := NewOcCred()
+		if err != nil {
+			return nil, err
+		}
+		err = ocCred.StorePrivateKey("")
+		if err != nil {
+			return nil, err
+		}
+		return ocCred, nil
+	}
+}
 
 func NewOcCredLoadFromFile(filename string) (*OcCred, error) {
 	if filename == "" {

@@ -23,6 +23,7 @@ var fMinFee = goopt.String([]string{"--min-fee"}, "calc.calc=.01BTC", "")
 var fMinCoins = goopt.String([]string{"--min-coins"}, "calc.calc=.1BTC", "")
 var fMaxWork = goopt.String([]string{"--max-work"}, "calc.calc={\"bytes\": 1000, \"queries\": 100}", "")
 var fPort = goopt.Int([]string{"-p", "--port"}, 9443, "")
+var fAppDir = goopt.String([]string{"--app-dir"}, "~/.decloud", "")
 
 func main() {
 	goopt.Parse(nil)
@@ -39,8 +40,14 @@ func main() {
 	}
 	fmt.Printf("running with conf: %v\n", conf)
 
+	util.SetAppDir(*fAppDir)
+	ocCred, err := cred.NewOcCredLoadOrCreate("")
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
 	// TODO(ortutay): really, this should be flags to the binary so that we don't
-	// spend people's coins without explicit permission
+	// spend people's coins without explicit intent
 	bConf, err := util.LoadBitcoindConf("")
 	if err != nil {
 		log.Fatal(err.Error())
@@ -56,7 +63,7 @@ func main() {
 		Services: services,
 	}
 	s := node.Server{
-		Cred: &cred.Cred{}, // TODO(ortutay): generate/fill in cred
+		Cred: &cred.Cred{Signers: []cred.Signer{ocCred}},
 		Conf: conf,
 		Addr: addr,
 		Handler: &mux,

@@ -1,6 +1,7 @@
 package util
 
 import (
+	"regexp"
 	"bufio"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 )
 
 var _ = fmt.Println
+var appDir string = "~/.decloud"
 
 type BitcoindConf struct {
 	User     string
@@ -115,17 +117,22 @@ func normalizeFilename(filename string) (string, error) {
 		if path.Dir(filename) != "." {
 			panic("TODO implement if needed")
 		}
-		filename = appDir() + "/" + filename
+		filename = AppDir() + "/" + filename
 		return filename, nil
 	}
 }
 
-func appDir() string {
-	return os.Getenv("HOME") + "/.oc"
+func AppDir() string {
+	re := regexp.MustCompile("^~")
+	return string(re.ReplaceAll([]byte(appDir), []byte(os.Getenv("HOME"))))
+}
+
+func SetAppDir(newAppDir string) {
+	appDir = newAppDir
 }
 
 func makeAppDir() error {
-	err := os.Mkdir(appDir(), 0775)
+	err := os.Mkdir(AppDir(), 0775)
 	if os.IsExist(err) {
 		return nil
 	} else {
