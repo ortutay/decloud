@@ -26,17 +26,19 @@ const (
 	SIG_RAND_NUM_BYTES     = 256
 )
 
+type OcID string
+
 type Signer interface {
 	SignOcReq(req *msg.OcReq) error
 }
 
 type Cred struct {
-	OcID  OcID
+	OcCred  OcCred
 	Coins []BtcCred
 }
 
 func (c *Cred) SignOcReq(req *msg.OcReq, bConf *util.BitcoindConf) error {
-	err := c.OcID.SignOcReq(req)
+	err := c.OcCred.SignOcReq(req)
 	if err != nil {
 		return fmt.Errorf("error while signing: %v", err.Error())
 	}
@@ -50,7 +52,7 @@ func (c *Cred) SignOcReq(req *msg.OcReq, bConf *util.BitcoindConf) error {
 	return nil
 }
 
-type OcID struct {
+type OcCred struct {
 	Priv *ecdsa.PrivateKey // TODO(ortutay): make private field?
 }
 
@@ -58,7 +60,7 @@ type BtcCred struct {
 	Addr string
 }
 
-func NewOcID() (*OcID, error) {
+func NewOcCred() (*OcCred, error) {
 	randBytes := make([]byte, NODE_ID_RAND_NUM_BYTES)
 	_, err := rand.Read(randBytes)
 	if err != nil {
@@ -71,33 +73,33 @@ func NewOcID() (*OcID, error) {
 		return nil, errors.New("error generating ECDSA key")
 	}
 
-	ocID := OcID{
+	ocCred := OcCred{
 		Priv: priv,
 	}
-	return &ocID, nil
+	return &ocCred, nil
 }
 
-func NewOcIDLoadOrCreate(filename string) (*OcID, error) {
+func NewOcCredLoadOrCreate(filename string) (*OcCred, error) {
 	if filename == "" {
 		filename = PRIVATE_KEY_FILENAME
 	}
 	file, _ := util.GetAppData(filename)
 	if file != nil {
-		return NewOcIDLoadFromFile(filename)
+		return NewOcCredLoadFromFile(filename)
 	} else {
-		ocID, err := NewOcID()
+		ocCred, err := NewOcCred()
 		if err != nil {
 			return nil, err
 		}
-		err = ocID.StorePrivateKey("")
+		err = ocCred.StorePrivateKey("")
 		if err != nil {
 			return nil, err
 		}
-		return ocID, nil
+		return ocCred, nil
 	}
 }
 
-func NewOcIDLoadFromFile(filename string) (*OcID, error) {
+func NewOcCredLoadFromFile(filename string) (*OcCred, error) {
 	if filename == "" {
 		filename = PRIVATE_KEY_FILENAME
 	}
@@ -118,11 +120,11 @@ func NewOcIDLoadFromFile(filename string) (*OcID, error) {
 		D: &d,
 	}
 
-	ocID := OcID{
+	ocCred := OcCred{
 		Priv: &priv,
 	}
 
-	return &ocID, nil
+	return &ocCred, nil
 }
 
 func getReqSigDataHash(req *msg.OcReq) ([]byte, error) {
@@ -139,7 +141,7 @@ func getReqSigDataHash(req *msg.OcReq) ([]byte, error) {
 	return h, nil
 }
 
-func (o *OcID) StorePrivateKey(filename string) error {
+func (o *OcCred) StorePrivateKey(filename string) error {
 	if filename == "" {
 		filename = PRIVATE_KEY_FILENAME
 	}
@@ -151,7 +153,7 @@ func (o *OcID) StorePrivateKey(filename string) error {
 	return nil
 }
 
-func (o *OcID) SignOcReq(req *msg.OcReq) error {
+func (o *OcCred) SignOcReq(req *msg.OcReq) error {
 	h, err := getReqSigDataHash(req)
 	if err != nil {
 		return err
@@ -214,14 +216,14 @@ func VerifyOcReqSig(req *msg.OcReq, conf *util.BitcoindConf) (bool, error) {
 	return true, nil
 }
 
-func verifyOcSig(reqHash []byte, ocID string, sig string) bool {
-	ocIDReader := strings.NewReader(ocID)
+func verifyOcSig(reqHash []byte, ocCred string, sig string) bool {
+	ocCredReader := strings.NewReader(ocCred)
 	var x, y, r, s big.Int
-	n, err := fmt.Fscanf(ocIDReader, string(OC_ID_PREFIX)+"%x,%x", &x, &y)
+	n, err := fmt.Fscanf(ocCredReader, string(OC_ID_PREFIX)+"%x,%x", &x, &y)
 	if err != nil {
 		return false
 	}
-	n, err = ocIDReader.Read(make([]byte, 1))
+	n, err = ocCredReader.Read(make([]byte, 1))
 	if n != 0 || err != io.EOF {
 		return false
 	}

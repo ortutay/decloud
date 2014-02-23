@@ -41,7 +41,7 @@ func main() {
 	fmt.Printf("running with conf: %v\n", conf)
 
 	util.SetAppDir(*fAppDir)
-	ocID, err := cred.NewOcIDLoadOrCreate("")
+	ocCred, err := cred.NewOcCredLoadOrCreate("")
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -63,7 +63,7 @@ func main() {
 		Services: services,
 	}
 	s := node.Server{
-		Cred:    &cred.Cred{OcID: *ocID, Coins: []cred.BtcCred{}},
+		Cred:    &cred.Cred{OcCred: *ocCred, Coins: []cred.BtcCred{}},
 		Conf:    conf,
 		Addr:    addr,
 		Handler: &mux,

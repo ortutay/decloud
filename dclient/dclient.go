@@ -20,7 +20,7 @@ func main() {
 	goopt.Parse(nil)
 	util.SetAppDir(*fAppDir)
 
-	ocID, err := cred.NewOcIDLoadOrCreate("")
+	ocCred, err := cred.NewOcCredLoadOrCreate("")
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -33,7 +33,7 @@ func main() {
 	c := node.Client{
 		BitcoindConf: bConf,
 		Cred: cred.Cred{
-			Signers: []cred.Signer{ocID},
+			Signers: []cred.Signer{ocCred},
 		},
 	}
 	fmt.Printf("client %v\n", c)
