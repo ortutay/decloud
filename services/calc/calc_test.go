@@ -14,11 +14,11 @@ func TestMeasure(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if work.NumQueries != 1 {
-		t.Errorf("got %v, expected %v\n", work.NumQueries, 1)
+	if work.Queries != 1 {
+		t.Errorf("got %v, expected %v\n", work.Queries, 1)
 	}
-	if work.NumBytes != 5 {
-		t.Errorf("got %v, expected %v\n", work.NumBytes, 5)
+	if work.Bytes != 5 {
+		t.Errorf("got %v, expected %v\n", work.Bytes, 5)
 	}
 }
 
