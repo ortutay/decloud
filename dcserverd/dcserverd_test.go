@@ -16,9 +16,9 @@ func TestMakeConf(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	// TODO(ortutay): implement real comparison
-	expectedStr := `&{[{{calc calc} min-fee [{"amount":1000000,"currency":"BTC"}]} {{ } min-coins [{"amount":10000000,"currency":"BTC"}]} {{calc calc} max-work [{"queries":100,"bytes":1000}]}] }`
+	expectedStr := `&{[{{calc calc} min-fee [{1000000 BTC}]} {{ } min-coins [{10000000 BTC}]} {{calc calc} max-work [{"queries":100,"bytes":1000}]}] }`
 	if expectedStr != fmt.Sprintf("%v", conf) {
-		t.Fatalf("unexpected conf: %v", conf)
+		t.Fatalf("unexpected conf: %v != %v", expectedStr, conf)
 	}
 }
 

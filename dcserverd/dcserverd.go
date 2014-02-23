@@ -63,7 +63,7 @@ func main() {
 		Services: services,
 	}
 	s := node.Server{
-		Cred:    &cred.Cred{Signers: []cred.Signer{ocID}},
+		Cred:    &cred.Cred{OcID: *ocID, Coins: []cred.BtcCred{}},
 		Conf:    conf,
 		Addr:    addr,
 		Handler: &mux,
