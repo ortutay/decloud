@@ -33,17 +33,16 @@ type Signer interface {
 type Cred struct {
 	OcID    OcID
 	Coins   []BtcCred
-	BtcConf *util.BitcoindConf
 }
 
-func (c *Cred) SignOcReq(req *msg.OcReq) error {
+func (c *Cred) SignOcReq(req *msg.OcReq, bConf *util.BitcoindConf) error {
 	err := c.OcID.SignOcReq(req)
 	if err != nil {
 		return fmt.Errorf("error while signing: %v", err.Error())
 	}
 
 	for _, coin := range c.Coins {
-		err := coin.SignOcReq(req, c.BtcConf)
+		err := coin.SignOcReq(req, bConf)
 		if err != nil {
 			return fmt.Errorf("error while signing: %v", err.Error())
 		}
