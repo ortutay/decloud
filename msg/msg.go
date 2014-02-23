@@ -75,8 +75,10 @@ func NewPaymentValue(str string) (*PaymentValue, error) {
 
 // TODO(ortutay): add types as appropriate
 type OcReq struct {
-	Id            []string        `json:"id,omitempty"`
-	Sig           []string        `json:"sig,omitempty"`
+	Id            string        `json:"id,omitempty"`
+	Sig           string        `json:"sig,omitempty"`
+	Coins []string `json:"coins,omitempty"`
+	CoinSigs []string `json:"coinSigs,omitEmpty"`
 	Nonce         string          `json:"nonce,omitempty"`
 	Service       string          `json:"service"`
 	Method        string          `json:"method"`
@@ -171,8 +173,10 @@ const (
 )
 
 type OcResp struct {
-	Id     []string     `json:"id,omitempty"`
-	Sig    []string     `json:"sig,omitempty"`
+	Id     string     `json:"id,omitempty"`
+	Sig    string     `json:"sig,omitempty"`
+	Coins []string `json:"coins,omitempty"`
+	CoinSigs []string `json:"coinSigs,omitEmpty"`
 	Nonce  string       `json:"nonce,omitempty"`
 	Status OcRespStatus `json:"status,omitempty"`
 	// TODO(ortutay): status code
@@ -182,8 +186,10 @@ type OcResp struct {
 
 func NewRespOk(body []byte) *OcResp {
 	resp := OcResp{
-		Id:            []string{},
-		Sig:           []string{},
+		Id:            "",
+		Sig:           "",
+		Coins:            []string{},
+		CoinSigs:           []string{},
 		Nonce:         "", // TODO(ortutay)
 		Status:        OK,
 		ContentLength: len(body),
@@ -197,8 +203,10 @@ func NewRespError(status OcRespStatus) *OcResp {
 		panic("got status OK, but expected an error status")
 	}
 	resp := OcResp{
-		Id:     []string{},
-		Sig:    []string{},
+		Id:            "",
+		Sig:           "",
+		Coins:            []string{},
+		CoinSigs:           []string{},
 		Nonce:  "", // TODO(ortutay)
 		Status: status,
 	}

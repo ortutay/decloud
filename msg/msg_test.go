@@ -15,8 +15,10 @@ func TestReadWriteOcReq(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	req := OcReq{
-		Id:            []string{"id1", "id2", "id3"},
-		Sig:           []string{"sig1", "sig2", "sig3"},
+		Id:            "id1",
+		Sig:           "sig1",
+		Coins: []string{"1addr1", "1addr2"},
+		CoinSigs: []string{"addr1sig", "addr2sig"},
 		Nonce:         "abcnonce",
 		Service:       "testService",
 		Method:        "testMethod",
@@ -45,8 +47,10 @@ func TestReadWriteOcReq(t *testing.T) {
 func TestReadWriteOcResp(t *testing.T) {
 	body := []byte("some body, just a string here, but could be binary data")
 	resp := OcResp{
-		Id:            []string{"id1", "id2", "id3"},
-		Sig:           []string{"sig1", "sig2", "sig3"},
+		Id:            "id1",
+		Sig:           "sig1",
+		Coins: []string{"1addr1", "1addr2"},
+		CoinSigs: []string{"addr1sig", "addr2sig"},
 		Nonce:         "abcnonce",
 		Status:        OK,
 		ContentLength: len(body),
