@@ -28,34 +28,34 @@ func newReq() *msg.OcReq {
 	return &msg
 }
 
-func TestNewOcCred(t *testing.T) {
-	_, err := NewOcCred()
+func TestNewOcID(t *testing.T) {
+	_, err := NewOcID()
 	if err != nil {
 		t.Errorf("%v", err)
 	}
 }
 
-func TestStoreAndLoadOcCred(t *testing.T) {
+func TestStoreAndLoadOcID(t *testing.T) {
 	destDir, err := ioutil.TempDir("", "msgtest")
 	dest := destDir + "/tmp-nodeid-priv"
 
-	ocCred, err := NewOcCred()
+	ocID, err := NewOcID()
 	if err != nil {
 		t.Errorf("%v", err)
 	}
 
-	err = ocCred.StorePrivateKey(dest)
+	err = ocID.StorePrivateKey(dest)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
 
-	ocCred2, err := NewOcCredLoadFromFile(dest)
+	ocID2, err := NewOcIDLoadFromFile(dest)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
 
-	priv := ocCred.Priv
-	priv2 := ocCred2.Priv
+	priv := ocID.Priv
+	priv2 := ocID2.Priv
 	if priv.D.Cmp(priv2.D) != 0 ||
 		priv.PublicKey.X.Cmp(priv2.PublicKey.X) != 0 ||
 		priv.PublicKey.Y.Cmp(priv2.PublicKey.Y) != 0 {
@@ -71,12 +71,12 @@ func TestStoreAndLoadOcCred(t *testing.T) {
 func TestSignRequest(t *testing.T) {
 	ocReq := newReq()
 
-	ocCred, err := NewOcCred()
+	ocID, err := NewOcID()
 	if err != nil {
 		t.Errorf("%v", err)
 	}
 
-	err = ocCred.SignOcReq(ocReq)
+	err = ocID.SignOcReq(ocReq)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
@@ -96,12 +96,12 @@ func TestSignRequest(t *testing.T) {
 
 func TestInvalidOcSignatureFails(t *testing.T) {
 	ocReq := newReq()
-	ocCred, err := NewOcCred()
+	ocID, err := NewOcID()
 	if err != nil {
 		t.Errorf("%v", err)
 	}
 
-	err = ocCred.SignOcReq(ocReq)
+	err = ocID.SignOcReq(ocReq)
 	if err != nil {
 		t.Errorf("%v", err)
 	}

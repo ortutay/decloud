@@ -44,7 +44,7 @@ func (cred *Cred) SignOcReq(req *msg.OcReq) error {
 	return nil
 }
 
-type OcCred struct {
+type OcID struct {
 	Priv *ecdsa.PrivateKey // TODO(ortutay): make private field?
 }
 
@@ -52,7 +52,7 @@ type BtcCred struct {
 	Addr string
 }
 
-func NewOcCred() (*OcCred, error) {
+func NewOcID() (*OcID, error) {
 	randBytes := make([]byte, NODE_ID_RAND_NUM_BYTES)
 	_, err := rand.Read(randBytes)
 	if err != nil {
@@ -65,13 +65,13 @@ func NewOcCred() (*OcCred, error) {
 		return nil, errors.New("error generating ECDSA key")
 	}
 
-	ocCred := OcCred{
+	ocID := OcID{
 		Priv: priv,
 	}
-	return &ocCred, nil
+	return &ocID, nil
 }
 
-func (cred *OcCred) StorePrivateKey(filename string) error {
+func (cred *OcID) StorePrivateKey(filename string) error {
 	if filename == "" {
 		filename = PRIVATE_KEY_FILENAME
 	}
@@ -83,27 +83,27 @@ func (cred *OcCred) StorePrivateKey(filename string) error {
 	return nil
 }
 
-func NewOcCredLoadOrCreate(filename string) (*OcCred, error) {
+func NewOcIDLoadOrCreate(filename string) (*OcID, error) {
 	if filename == "" {
 		filename = PRIVATE_KEY_FILENAME
 	}
 	file, _ := util.GetAppData(filename)
 	if file != nil {
-		return NewOcCredLoadFromFile(filename)
+		return NewOcIDLoadFromFile(filename)
 	} else {
-		ocCred, err := NewOcCred()
+		ocID, err := NewOcID()
 		if err != nil {
 			return nil, err
 		}
-		err = ocCred.StorePrivateKey("")
+		err = ocID.StorePrivateKey("")
 		if err != nil {
 			return nil, err
 		}
-		return ocCred, nil
+		return ocID, nil
 	}
 }
 
-func NewOcCredLoadFromFile(filename string) (*OcCred, error) {
+func NewOcIDLoadFromFile(filename string) (*OcID, error) {
 	if filename == "" {
 		filename = PRIVATE_KEY_FILENAME
 	}
@@ -124,11 +124,11 @@ func NewOcCredLoadFromFile(filename string) (*OcCred, error) {
 		D: &d,
 	}
 
-	ocCred := OcCred{
+	ocID := OcID{
 		Priv: &priv,
 	}
 
-	return &ocCred, nil
+	return &ocID, nil
 }
 
 func getReqSigDataHash(req *msg.OcReq) ([]byte, error) {
@@ -146,7 +146,7 @@ func getReqSigDataHash(req *msg.OcReq) ([]byte, error) {
 }
 
 // TODO(ortutay): move sign and verify to msg?
-func (cred *OcCred) SignOcReq(req *msg.OcReq) error {
+func (cred *OcID) SignOcReq(req *msg.OcReq) error {
 	h, err := getReqSigDataHash(req)
 	if err != nil {
 		return err

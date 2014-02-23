@@ -41,7 +41,7 @@ func main() {
 	fmt.Printf("running with conf: %v\n", conf)
 
 	util.SetAppDir(*fAppDir)
-	ocCred, err := cred.NewOcCredLoadOrCreate("")
+	ocID, err := cred.NewOcIDLoadOrCreate("")
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -63,7 +63,7 @@ func main() {
 		Services: services,
 	}
 	s := node.Server{
-		Cred: &cred.Cred{Signers: []cred.Signer{ocCred}},
+		Cred: &cred.Cred{Signers: []cred.Signer{ocID}},
 		Conf: conf,
 		Addr: addr,
 		Handler: &mux,
