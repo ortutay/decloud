@@ -21,11 +21,6 @@ const (
 	QUOTE_METHOD     = "quote"
 )
 
-type QuoteArgs struct {
-	Method string `json:"method"`
-	Work   *Work  `json:"work"`
-}
-
 func NewQuoteReqFromReq(orig *msg.OcReq) (*msg.OcReq, error) {
 	work, err := Measure(orig)
 	if err != nil {
@@ -36,8 +31,7 @@ func NewQuoteReqFromReq(orig *msg.OcReq) (*msg.OcReq, error) {
 }
 
 func NewQuoteReq(work *Work) *msg.OcReq {
-	args := QuoteArgs{Method: CALCULATE_METHOD, Work: work}
-	argsJson, err := json.Marshal(args)
+	workJson, err := json.Marshal(work)
 	if err != nil {
 		panic(err)
 	}
@@ -49,7 +43,7 @@ func NewQuoteReq(work *Work) *msg.OcReq {
 		Nonce:         "",
 		Service:       SERVICE_NAME,
 		Method:        QUOTE_METHOD,
-		Args:          argsJson,
+		Args:          []string{CALCULATE_METHOD, string(workJson)},
 		PaymentType:   "",
 		PaymentTxn:    "",
 		ContentLength: 0,
@@ -59,7 +53,6 @@ func NewQuoteReq(work *Work) *msg.OcReq {
 }
 
 func NewCalcReq(queries []string) *msg.OcReq {
-	argsJson, _ := json.Marshal(queries)
 	msg := msg.OcReq{
 		ID:            "",
 		Sig:           "",
@@ -68,7 +61,7 @@ func NewCalcReq(queries []string) *msg.OcReq {
 		Nonce:         "",
 		Service:       SERVICE_NAME,
 		Method:        CALCULATE_METHOD,
-		Args:          argsJson,
+		Args:          queries,
 		PaymentType:   "",
 		PaymentTxn:    "",
 		ContentLength: 0,
@@ -111,13 +104,8 @@ func Measure(req *msg.OcReq) (*Work, error) {
 		return nil, fmt.Errorf("can only measure work for %s method, got %s",
 			CALCULATE_METHOD, req.Method)
 	}
-	var queries []string
-	err := json.Unmarshal(req.Args, &queries)
-	if err != nil {
-		return nil, fmt.Errorf("invalid args for calc.Measure %v: %v", req.Args, err.Error())
-	}
 	var work Work
-	for _, q := range queries {
+	for _, q := range req.Args {
 		work.Bytes += len(q)
 		work.Queries++
 	}
@@ -174,18 +162,17 @@ func (cs CalcService) info(req *msg.OcReq) (*msg.OcResp, error) {
 }
 
 func (cs CalcService) quote(req *msg.OcReq) (*msg.OcResp, error) {
-	var quoteArgs QuoteArgs
-	err := json.Unmarshal(req.Args, &quoteArgs)
+	reqMethod := req.Args[0]
+	var reqWork Work
+	err := json.Unmarshal([]byte(req.Args[1]), &reqWork)
 	if err != nil {
 		return msg.NewRespError(msg.INVALID_ARGUMENTS), nil
 	}
-	if quoteArgs.Method != CALCULATE_METHOD {
+	if reqMethod != CALCULATE_METHOD {
 		return msg.NewRespError(msg.INVALID_ARGUMENTS), nil
 	}
 
-	fmt.Printf("quote for work: %v\n", quoteArgs.Work)
-
-	pv, err := cs.paymentForWork(quoteArgs.Work, quoteArgs.Method)
+	pv, err := cs.paymentForWork(&reqWork, reqMethod)
 	if err != nil {
 		log.Printf("server error: %v", err.Error())
 		return msg.NewRespError(msg.SERVER_ERROR), nil
@@ -235,13 +222,8 @@ func (cs CalcService) calculate(req *msg.OcReq) (*msg.OcResp, error) {
 		}
 	}
 
-	var queries, results []string
-	err = json.Unmarshal(req.Args, &queries)
-	if err != nil {
-		fmt.Printf("args: %v %v", string(req.Args), err.Error())
-		return msg.NewRespError(msg.INVALID_ARGUMENTS), nil
-	}
-	for _, q := range queries {
+	var results []string
+	for _, q := range req.Args {
 		tokens := strings.Split(q, " ")
 		var stack []float64
 		for _, token := range tokens {
