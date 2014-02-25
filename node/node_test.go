@@ -23,8 +23,8 @@ func newClient(btcConf *util.BitcoindConf) (*Client, error) {
 	c := Client{
 		BtcConf: btcConf,
 		Cred: cred.Cred{
-			OcCred:  *ocCred,
-			Coins: []cred.BtcCred{},
+			OcCred: *ocCred,
+			Coins:  []cred.BtcCred{},
 		},
 	}
 	return &c, nil
