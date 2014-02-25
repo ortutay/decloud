@@ -23,7 +23,7 @@ func newReq() *msg.OcReq {
 		Nonce:       "",
 		Service:     "storage",
 		Method:      "get",
-		Args:        []byte("123"),
+		Args:        []string{"123"},
 		PaymentType: "None",
 		PaymentTxn:  "blob",
 		Body:        []byte(""),

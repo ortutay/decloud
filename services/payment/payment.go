@@ -1,7 +1,6 @@
 package payment
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/conformal/btcjson"
@@ -12,19 +11,10 @@ import (
 const (
 	SERVICE_NAME        = "payment"
 	TXID_METHOD         = "txid"
-	PAYMENT_ADDR_METHOD = "paymentAddr"
+	PAYMENT_ADDR_METHOD = "addr"
 )
 
-type TxidArgs struct {
-	Currency msg.Currency `json:"currency"`
-	Txid     string       `json:"txid"`
-}
-
 func NewPaymentAddrReq(currency msg.Currency) *msg.OcReq {
-	argsJson, err := json.Marshal(currency)
-	if err != nil {
-		panic(err)
-	}
 	msg := msg.OcReq{
 		ID:          "",
 		Sig:         "",
@@ -33,7 +23,7 @@ func NewPaymentAddrReq(currency msg.Currency) *msg.OcReq {
 		Nonce:       "",
 		Service:     SERVICE_NAME,
 		Method:      PAYMENT_ADDR_METHOD,
-		Args:        argsJson,
+		Args:        []string{currency.String()},
 		PaymentType: "",
 		PaymentTxn:  "",
 		Body:        []byte(""),
@@ -43,14 +33,6 @@ func NewPaymentAddrReq(currency msg.Currency) *msg.OcReq {
 
 // TODO(ortutay): sign these reqs with an input to the txn to prove ownership
 func NewBtcTxidReq(txid msg.BtcTxid) *msg.OcReq {
-	txidArgs := TxidArgs{
-		Currency: msg.BTC,
-		Txid:     string(txid),
-	}
-	argsJson, err := json.Marshal(txidArgs)
-	if err != nil {
-		panic(err)
-	}
 	msg := msg.OcReq{
 		ID:          "",
 		Sig:         "",
@@ -59,7 +41,7 @@ func NewBtcTxidReq(txid msg.BtcTxid) *msg.OcReq {
 		Nonce:       "",
 		Service:     SERVICE_NAME,
 		Method:      TXID_METHOD,
-		Args:        argsJson,
+		Args:        []string{txid.String(), string(msg.BTC)},
 		PaymentType: msg.TXID,
 		Body:        []byte(""),
 	}
@@ -83,11 +65,7 @@ func (ps *PaymentService) Handle(req *msg.OcReq) (*msg.OcResp, error) {
 }
 
 func (ps *PaymentService) getPaymentAddr(req *msg.OcReq) (*msg.OcResp, error) {
-	var reqCurrency string
-	err := json.Unmarshal(req.Args, &reqCurrency)
-	if err != nil {
-		return msg.NewRespError(msg.INVALID_ARGUMENTS), nil
-	}
+	reqCurrency := req.Args[0]
 	switch reqCurrency {
 	case string(msg.BTC):
 		if ps.BitcoindConf == nil {
@@ -119,18 +97,15 @@ func (ps *PaymentService) fetchNewBtcAddr() (string, error) {
 }
 
 func (ps *PaymentService) txid(req *msg.OcReq) (*msg.OcResp, error) {
-	var txidArgs TxidArgs
-	err := json.Unmarshal(req.Args, &txidArgs)
-	if err != nil {
-		return msg.NewRespError(msg.INVALID_ARGUMENTS), nil
-	}
-	switch txidArgs.Currency {
+	reqTxid := req.Args[0]
+	reqCurrency := msg.Currency(req.Args[1])
+	switch reqCurrency {
 	case msg.BTC:
 		if ps.BitcoindConf == nil {
 			return msg.NewRespError(msg.SERVER_ERROR), nil
 		}
 		// For now, just see if we can find the transaction
-		cmd, err := btcjson.NewGetTransactionCmd("", string(txidArgs.Txid))
+		cmd, err := btcjson.NewGetTransactionCmd("", string(reqTxid))
 		if err != nil {
 			return nil, fmt.Errorf("error while making cmd: %v", err.Error())
 		}
@@ -147,6 +122,7 @@ func (ps *PaymentService) txid(req *msg.OcReq) (*msg.OcResp, error) {
 			}
 		}
 		return msg.NewRespOk([]byte("")), nil
+	default:
+		return msg.NewRespError(msg.CURRENCY_UNSUPPORTED), nil
 	}
-	return nil, nil
 }

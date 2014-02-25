@@ -3,7 +3,6 @@ package msg
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -11,10 +10,6 @@ import (
 func TestReadWriteOcReq(t *testing.T) {
 	body := []byte("some body, just a string here, but could be binary data")
 	args := []string{"1", "2"}
-	argsJson, err := json.Marshal(args)
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
 	req := OcReq{
 		ID:            "id1",
 		Sig:           "sig1",
@@ -23,7 +18,7 @@ func TestReadWriteOcReq(t *testing.T) {
 		Nonce:         "abcnonce",
 		Service:       "testService",
 		Method:        "testMethod",
-		Args:          argsJson,
+		Args:          args,
 		PaymentType:   ATTACHED,
 		PaymentValue:  &PaymentValue{Amount: 1e8, Currency: BTC},
 		PaymentTxn:    "base64-btc-txn",
@@ -31,7 +26,7 @@ func TestReadWriteOcReq(t *testing.T) {
 		Body:          body,
 	}
 	buf := bytes.Buffer{}
-	err = req.Write(&buf)
+	err := req.Write(&buf)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

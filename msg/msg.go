@@ -14,7 +14,13 @@ import (
 var _ = fmt.Printf
 
 type BtcTxid string
+
+func (bt *BtcTxid) String() string {
+	return string(*bt)
+}
+
 type PaymentType string
+
 type OcID string
 
 func (o *OcID) String() string {
@@ -52,6 +58,10 @@ func NewPaymentAddr(str string) (*PaymentAddr, error) {
 }
 
 type Currency string
+
+func (c *Currency) String() string {
+	return string(*c)
+}
 
 const (
 	BTC Currency = "BTC"
@@ -107,28 +117,28 @@ func NewPaymentValueParseString(str string) (*PaymentValue, error) {
 
 // TODO(ortutay): add types as appropriate
 type OcReq struct {
-	ID            OcID            `json:"id,omitempty"`
-	Sig           string          `json:"sig,omitempty"`
-	Coins         []string        `json:"coins,omitempty"`
-	CoinSigs      []string        `json:"coinSigs,omitEmpty"`
-	Nonce         string          `json:"nonce,omitempty"`
-	Service       string          `json:"service"`
-	Method        string          `json:"method"`
-	Args          json.RawMessage `json:"args,omitempty"`
-	PaymentType   PaymentType     `json:"paymentType,omitempty"`
-	PaymentValue  *PaymentValue   `json:"paymentValue,omitempty"`
-	PaymentTxn    string          `json:"paymentTxn,omitempty"`
-	ContentLength int             `json:"contentLength,omitempty"`
-	Body          []byte          `json:"-"`
+	ID            OcID          `json:"id,omitempty"`
+	Sig           string        `json:"sig,omitempty"`
+	Coins         []string      `json:"coins,omitempty"`
+	CoinSigs      []string      `json:"coinSigs,omitEmpty"`
+	Nonce         string        `json:"nonce,omitempty"`
+	Service       string        `json:"service"`
+	Method        string        `json:"method"`
+	Args          []string      `json:"args,omitempty"`
+	PaymentType   PaymentType   `json:"paymentType,omitempty"`
+	PaymentValue  *PaymentValue `json:"paymentValue,omitempty"`
+	PaymentTxn    string        `json:"paymentTxn,omitempty"`
+	ContentLength int           `json:"contentLength,omitempty"`
+	Body          []byte        `json:"-"`
 }
 
 func (r *OcReq) WriteSignablePortion(w io.Writer) error {
 	w.Write([]byte(r.Nonce))
 	w.Write([]byte(r.Service))
 	w.Write([]byte(r.Method))
-	// for _, arg := range r.Args {
-	// 	w.Write([]byte(arg))
-	// }
+	for _, arg := range r.Args {
+		w.Write([]byte(arg))
+	}
 	var s = string(r.PaymentType)
 	w.Write([]byte(s))
 	w.Write([]byte(r.PaymentTxn))
