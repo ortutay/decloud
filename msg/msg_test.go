@@ -1,6 +1,7 @@
 package msg
 
 import (
+	"strings"
 	"bufio"
 	"bytes"
 	"encoding/json"
@@ -68,5 +69,41 @@ func TestReadWriteOcResp(t *testing.T) {
 	}
 	if resp.String() != resp2.String() {
 		t.Fatalf("%v != %v\n", resp.String(), resp2.String())
+	}
+}
+
+func TestGetPaymentValue(t *testing.T) {
+	pv, err := NewPaymentValueParseString(".1BTC")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if BTC != pv.Currency {
+		t.Fatalf("expected %v, got %v", BTC, pv.Currency)
+	}
+	if 1e7 != pv.Amount {
+		t.Fatalf("expected %v, got %v", 1e7, pv.Amount)
+	}
+}
+
+func TestGetPaymentValueAlternateFormat(t *testing.T) {
+	pv, err := NewPaymentValueParseString("2.1 BTC")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if BTC != pv.Currency {
+		t.Fatalf("expected %v, got %v", BTC, pv.Currency)
+	}
+	if 2.1e8 != pv.Amount {
+		t.Fatalf("expected %v, got %v", 2.1e8, pv.Amount)
+	}
+}
+
+func TestGetPaymentValueOverMaxPrecision(t *testing.T) {
+	_, err := NewPaymentValueParseString(".123456789BTC")
+	if err == nil {
+		t.FailNow()
+	}
+	if !strings.HasPrefix(err.Error(), "max precision is 8") {
+		t.FailNow()
 	}
 }

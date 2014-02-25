@@ -1,8 +1,8 @@
 package rep
 
 import (
-	"cred"
-	"msg"
+	"github.com/ortutay/decloud/cred"
+	"github.com/ortutay/decloud/msg"
 )
 
 type Status string
