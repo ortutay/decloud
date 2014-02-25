@@ -141,6 +141,7 @@ func getReqSigDataHash(req *msg.OcReq) ([]byte, error) {
 }
 
 func (o *OcCred) ID() msg.OcID {
+	// TODO(ortutay): compress pub key
 	return msg.OcID(fmt.Sprintf("%c%x,%x",
 		OC_ID_PREFIX, o.Priv.PublicKey.X, o.Priv.PublicKey.Y))
 }
@@ -173,7 +174,6 @@ func (o *OcCred) SignOcReq(req *msg.OcReq) error {
 	if err != nil {
 		return fmt.Errorf("error during ECDSA signature: %v", err.Error())
 	}
-	// TODO(ortutay): compress pub key
 	req.ID = o.ID()
 	req.Sig = fmt.Sprintf("%x,%x", r, s)
 
@@ -220,7 +220,7 @@ func VerifyOcReqSig(req *msg.OcReq, conf *util.BitcoindConf) (bool, error) {
 }
 
 func verifyOcSig(reqHash []byte, ocID msg.OcID, sig string) bool {
-	ocCredReader := strings.NewReader(string(ocID))
+	ocCredReader := strings.NewReader(ocID.String())
 	var x, y, r, s big.Int
 	n, err := fmt.Fscanf(ocCredReader, string(OC_ID_PREFIX)+"%x,%x", &x, &y)
 	if err != nil {

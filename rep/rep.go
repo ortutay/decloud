@@ -1,9 +1,6 @@
 package rep
 
-import (
-	"github.com/ortutay/decloud/cred"
-	"github.com/ortutay/decloud/msg"
-)
+import "github.com/ortutay/decloud/msg"
 
 type Status string
 

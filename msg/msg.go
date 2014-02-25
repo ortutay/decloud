@@ -17,6 +17,10 @@ type BtcTxid string
 type PaymentType string
 type OcID string
 
+func (o *OcID) String() string {
+	return string(*o)
+}
+
 const (
 	NONE     PaymentType = "none"
 	TXID                 = "txid"
@@ -103,7 +107,7 @@ func NewPaymentValueParseString(str string) (*PaymentValue, error) {
 
 // TODO(ortutay): add types as appropriate
 type OcReq struct {
-	ID            OcID          `json:"id,omitempty"`
+	ID            OcID            `json:"id,omitempty"`
 	Sig           string          `json:"sig,omitempty"`
 	Coins         []string        `json:"coins,omitempty"`
 	CoinSigs      []string        `json:"coinSigs,omitEmpty"`
@@ -201,7 +205,7 @@ const (
 )
 
 type OcResp struct {
-	ID            OcID          `json:"id,omitempty"`
+	ID       OcID         `json:"id,omitempty"`
 	Sig      string       `json:"sig,omitempty"`
 	Coins    []string     `json:"coins,omitempty"`
 	CoinSigs []string     `json:"coinSigs,omitEmpty"`
