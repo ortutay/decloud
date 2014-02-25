@@ -42,7 +42,7 @@ func NewQuoteReq(work *Work) *msg.OcReq {
 		panic(err)
 	}
 	msg := msg.OcReq{
-		Id:            "",
+		ID:            "",
 		Sig:           "",
 		Coins:         []string{},
 		CoinSigs:      []string{},
@@ -61,7 +61,7 @@ func NewQuoteReq(work *Work) *msg.OcReq {
 func NewCalcReq(queries []string) *msg.OcReq {
 	argsJson, _ := json.Marshal(queries)
 	msg := msg.OcReq{
-		Id:            "",
+		ID:            "",
 		Sig:           "",
 		Coins:         []string{},
 		CoinSigs:      []string{},

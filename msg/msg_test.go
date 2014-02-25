@@ -1,10 +1,10 @@
 package msg
 
 import (
-	"strings"
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -16,7 +16,7 @@ func TestReadWriteOcReq(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	req := OcReq{
-		Id:            "id1",
+		ID:            "id1",
 		Sig:           "sig1",
 		Coins:         []string{"1addr1", "1addr2"},
 		CoinSigs:      []string{"addr1sig", "addr2sig"},
@@ -48,7 +48,7 @@ func TestReadWriteOcReq(t *testing.T) {
 func TestReadWriteOcResp(t *testing.T) {
 	body := []byte("some body, just a string here, but could be binary data")
 	resp := OcResp{
-		Id:            "id1",
+		ID:            "id1",
 		Sig:           "sig1",
 		Coins:         []string{"1addr1", "1addr2"},
 		CoinSigs:      []string{"addr1sig", "addr2sig"},

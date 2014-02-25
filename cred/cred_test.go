@@ -16,7 +16,7 @@ var _ = fmt.Printf
 
 func newReq() *msg.OcReq {
 	msg := msg.OcReq{
-		Id:          "",
+		ID:          "",
 		Sig:         "",
 		Coins:       []string{},
 		CoinSigs:    []string{},
@@ -116,14 +116,14 @@ func TestInvalidOcSignatureFails(t *testing.T) {
 		t.Errorf("invalid sig %v verified", ocReq.Sig)
 	}
 
-	originalId := ocReq.Id
-	ocReq.Id = originalId[1:] + "1"
+	originalID := ocReq.ID
+	ocReq.ID = originalID[1:] + "1"
 	if ok, _ := VerifyOcReqSig(ocReq, nil); ok {
-		t.Errorf("invalid node id %v verified", ocReq.Id)
+		t.Errorf("invalid node id %v verified", ocReq.ID)
 	}
 
 	if ok, _ := VerifyOcReqSig(ocReq, nil); ok {
-		t.Errorf("invalid node id %v verified", ocReq.Id)
+		t.Errorf("invalid node id %v verified", ocReq.ID)
 	}
 }
 
@@ -237,8 +237,8 @@ func TestInvalidBtcSignatureFails(t *testing.T) {
 		t.Errorf("expected malformed base64 encoding error, but got  %v", err)
 	}
 
-	originalId := ocReq.Coins[0]
-	ocReq.Coins[0] = originalId[0:len(originalId)-2] + "1"
+	originalID := ocReq.Coins[0]
+	ocReq.Coins[0] = originalID[0:len(originalID)-2] + "1"
 	ok, err = VerifyOcReqSig(ocReq, conf)
 	if ok {
 		t.Errorf("invalid node id %v verified", ocReq.Coins[0])

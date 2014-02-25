@@ -16,7 +16,7 @@ type Record struct {
 	Service      string
 	Method       string // Is "Method" the appropriate field?
 	Timestamp    int
-	OcID         cred.OcID
+	OcID         msg.OcID
 	Status       Status
 	PaymentType  msg.PaymentType
 	PaymentValue msg.PaymentValue

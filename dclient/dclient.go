@@ -106,7 +106,7 @@ func makeReq(args []string) (*msg.OcReq, error) {
 		return nil, fmt.Errorf("expected server.method, but got: %v", args[0])
 	}
 	req := msg.OcReq{
-		Id:            "",
+		ID:            "",
 		Sig:           "",
 		Nonce:         "",
 		Service:       s[0],

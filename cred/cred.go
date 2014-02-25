@@ -27,8 +27,6 @@ const (
 	SIG_RAND_NUM_BYTES     = 256
 )
 
-type OcID string
-
 type Signer interface {
 	SignOcReq(req *msg.OcReq) error
 }
@@ -142,6 +140,11 @@ func getReqSigDataHash(req *msg.OcReq) ([]byte, error) {
 	return h, nil
 }
 
+func (o *OcCred) ID() msg.OcID {
+	return msg.OcID(fmt.Sprintf("%c%x,%x",
+		OC_ID_PREFIX, o.Priv.PublicKey.X, o.Priv.PublicKey.Y))
+}
+
 func (o *OcCred) StorePrivateKey(filename string) error {
 	if filename == "" {
 		filename = PRIVATE_KEY_FILENAME
@@ -171,8 +174,7 @@ func (o *OcCred) SignOcReq(req *msg.OcReq) error {
 		return fmt.Errorf("error during ECDSA signature: %v", err.Error())
 	}
 	// TODO(ortutay): compress pub key
-	req.Id = fmt.Sprintf("%c%x,%x",
-		OC_ID_PREFIX, o.Priv.PublicKey.X, o.Priv.PublicKey.Y)
+	req.ID = o.ID()
 	req.Sig = fmt.Sprintf("%x,%x", r, s)
 
 	return nil
@@ -184,8 +186,8 @@ func VerifyOcReqSig(req *msg.OcReq, conf *util.BitcoindConf) (bool, error) {
 		return false, err
 	}
 
-	if req.Id != "" {
-		ok := verifyOcSig(h, req.Id, req.Sig)
+	if req.ID != "" {
+		ok := verifyOcSig(h, req.ID, req.Sig)
 		if !ok {
 			return false, nil
 		}
@@ -217,8 +219,8 @@ func VerifyOcReqSig(req *msg.OcReq, conf *util.BitcoindConf) (bool, error) {
 	return true, nil
 }
 
-func verifyOcSig(reqHash []byte, ocCred string, sig string) bool {
-	ocCredReader := strings.NewReader(ocCred)
+func verifyOcSig(reqHash []byte, ocID msg.OcID, sig string) bool {
+	ocCredReader := strings.NewReader(string(ocID))
 	var x, y, r, s big.Int
 	n, err := fmt.Fscanf(ocCredReader, string(OC_ID_PREFIX)+"%x,%x", &x, &y)
 	if err != nil {

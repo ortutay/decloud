@@ -15,6 +15,7 @@ var _ = fmt.Printf
 
 type BtcTxid string
 type PaymentType string
+type OcID string
 
 const (
 	NONE     PaymentType = "none"
@@ -102,7 +103,7 @@ func NewPaymentValueParseString(str string) (*PaymentValue, error) {
 
 // TODO(ortutay): add types as appropriate
 type OcReq struct {
-	Id            string          `json:"id,omitempty"`
+	ID            OcID          `json:"id,omitempty"`
 	Sig           string          `json:"sig,omitempty"`
 	Coins         []string        `json:"coins,omitempty"`
 	CoinSigs      []string        `json:"coinSigs,omitEmpty"`
@@ -200,7 +201,7 @@ const (
 )
 
 type OcResp struct {
-	Id       string       `json:"id,omitempty"`
+	ID            OcID          `json:"id,omitempty"`
 	Sig      string       `json:"sig,omitempty"`
 	Coins    []string     `json:"coins,omitempty"`
 	CoinSigs []string     `json:"coinSigs,omitEmpty"`
@@ -213,7 +214,7 @@ type OcResp struct {
 
 func NewRespOk(body []byte) *OcResp {
 	resp := OcResp{
-		Id:            "",
+		ID:            "",
 		Sig:           "",
 		Coins:         []string{},
 		CoinSigs:      []string{},
@@ -230,7 +231,7 @@ func NewRespError(status OcRespStatus) *OcResp {
 		panic("got status OK, but expected an error status")
 	}
 	resp := OcResp{
-		Id:       "",
+		ID:       "",
 		Sig:      "",
 		Coins:    []string{},
 		CoinSigs: []string{},

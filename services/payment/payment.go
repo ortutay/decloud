@@ -26,7 +26,7 @@ func NewPaymentAddrReq(currency msg.Currency) *msg.OcReq {
 		panic(err)
 	}
 	msg := msg.OcReq{
-		Id:          "",
+		ID:          "",
 		Sig:         "",
 		Coins:       []string{},
 		CoinSigs:    []string{},
@@ -52,7 +52,7 @@ func NewBtcTxidReq(txid msg.BtcTxid) *msg.OcReq {
 		panic(err)
 	}
 	msg := msg.OcReq{
-		Id:          "",
+		ID:          "",
 		Sig:         "",
 		Coins:       []string{},
 		CoinSigs:    []string{},
