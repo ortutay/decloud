@@ -3,12 +3,13 @@ package cred
 import (
 	"errors"
 	"fmt"
-	"github.com/conformal/btcjson"
-	"github.com/ortutay/decloud/msg"
-	"github.com/ortutay/decloud/util"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/conformal/btcjson"
+	"github.com/ortutay/decloud/msg"
+	"github.com/ortutay/decloud/util"
 )
 
 var _ = fmt.Printf

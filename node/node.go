@@ -3,12 +3,13 @@ package node
 import (
 	"bufio"
 	"fmt"
+	"net"
+
 	"github.com/conformal/btcjson"
 	"github.com/ortutay/decloud/conf"
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/util"
-	"net"
 )
 
 type Client struct {

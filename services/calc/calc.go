@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ortutay/decloud/btc"
-	"github.com/ortutay/decloud/conf"
-	"github.com/ortutay/decloud/msg"
 	"log"
 	"strconv"
 	"strings"
+
+	"github.com/ortutay/decloud/btc"
+	"github.com/ortutay/decloud/conf"
+	"github.com/ortutay/decloud/msg"
 )
 
 var _ = fmt.Printf

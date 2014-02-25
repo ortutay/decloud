@@ -2,19 +2,21 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"strings"
+
 	"github.com/droundy/goopt"
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/node"
 	"github.com/ortutay/decloud/services/calc"
 	"github.com/ortutay/decloud/util"
-	"log"
-	"os"
-	"strings"
 )
 
 var fAddr = goopt.String([]string{"-a", "--addr"}, "", "Remote host address")
 var fAppDir = goopt.String([]string{"--app-dir"}, "~/.decloud", "")
+var fDefer = goopt.String([]string{"--defer"}, "", "Included deferred payment")
 
 func main() {
 	goopt.Parse(nil)
@@ -31,9 +33,10 @@ func main() {
 	}
 
 	c := node.Client{
-		BitcoindConf: bConf,
+		BtcConf: bConf,
 		Cred: cred.Cred{
-			Signers: []cred.Signer{ocCred},
+			OcCred: *ocCred,
+			Coins:  []cred.BtcCred{},
 		},
 	}
 	fmt.Printf("client %v\n", c)
@@ -54,9 +57,25 @@ func main() {
 		if err != nil {
 			log.Fatal(err.Error())
 		}
+	case "call":
+		req, err = makeReq(cmdArgs[1:])
+		if err != nil {
+			log.Fatal(err.Error())
+		}
 	default:
 		fmt.Printf("unrecognized command: %v", cmdArgs)
 	}
+
+	// Parse/attach payments
+	if *fDefer != "" {
+		pv, err := msg.NewPaymentValueParseString(*fDefer)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+		req.AttachDeferredPayment(pv)
+	}
+
+	// TODO(ortutay): handle non-deferred payments
 
 	fmt.Printf("Sending request:\n%v\n\n", req.String())
 	fmt.Printf("addr %v\n", *fAddr)
@@ -87,8 +106,8 @@ func makeReq(args []string) (*msg.OcReq, error) {
 		return nil, fmt.Errorf("expected server.method, but got: %v", args[0])
 	}
 	req := msg.OcReq{
-		Id:            []string{},
-		Sig:           []string{},
+		Id:            "",
+		Sig:           "",
 		Nonce:         "",
 		Service:       s[0],
 		Method:        s[1],

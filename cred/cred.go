@@ -11,12 +11,13 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/conformal/btcjson"
-	"github.com/ortutay/decloud/msg"
-	"github.com/ortutay/decloud/util"
 	"io"
 	"math/big"
 	"strings"
+
+	"github.com/conformal/btcjson"
+	"github.com/ortutay/decloud/msg"
+	"github.com/ortutay/decloud/util"
 )
 
 const (

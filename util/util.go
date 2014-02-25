@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/conformal/btcjson"
 	"os"
 	"os/user"
 	"path"
 	"regexp"
 	"strings"
+
+	"github.com/conformal/btcjson"
 )
 
 var _ = fmt.Println

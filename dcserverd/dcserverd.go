@@ -2,6 +2,10 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"strings"
+
 	"github.com/droundy/goopt"
 	"github.com/ortutay/decloud/conf"
 	"github.com/ortutay/decloud/cred"
@@ -10,12 +14,6 @@ import (
 	"github.com/ortutay/decloud/services/calc"
 	"github.com/ortutay/decloud/services/payment"
 	"github.com/ortutay/decloud/util"
-	"log"
-	"math/big"
-	"os"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 // var fTestNet = goopt.Flag([]string{"-t", "--test-net"}, []string{"--main-net"}, "Use testnet", "Use mainnet")
@@ -173,27 +171,7 @@ func getSelector(sel string) (*conf.PolicySelector, error) {
 }
 
 func getPaymentValue(srvMeth, pv string) (interface{}, error) {
-	re := regexp.MustCompile("(?i)([0-9.]+) *(btc)")
-	m := re.FindStringSubmatch(pv)
-	if len(m) != 3 {
-		return nil, fmt.Errorf("could not parse: %v", pv)
-	}
-	r := new(big.Rat)
-	_, err := fmt.Sscan(m[1], r)
-	if err != nil {
-		return nil, fmt.Errorf("could not parse: %v", m[1])
-	}
-	r.Mul(r, big.NewRat(1e8, 1))
-	if !r.IsInt() {
-		return nil, fmt.Errorf("max precision is 8 decimal places (%v)", m[1])
-	}
-	intStr := r.RatString()
-	satoshis, err := strconv.ParseInt(intStr, 10, 64)
-	if err != nil {
-		// unexpected, r.RatString() should always return valid integer string
-		panic(err)
-	}
-	return &msg.PaymentValue{Amount: satoshis, Currency: msg.BTC}, nil
+	return msg.NewPaymentValueParseString(pv)
 }
 
 func getWork(srvMeth, w string) (interface{}, error) {

@@ -2,15 +2,16 @@ package node
 
 import (
 	"fmt"
+	"log"
+	"net"
+	"testing"
+
 	"github.com/ortutay/decloud/conf"
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/services/calc"
 	"github.com/ortutay/decloud/services/payment"
 	"github.com/ortutay/decloud/util"
-	"log"
-	"net"
-	"testing"
 )
 
 var _ = fmt.Printf
