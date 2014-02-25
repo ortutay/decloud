@@ -53,19 +53,24 @@ func main() {
 	switch cmdArgs[0] {
 	case "quote":
 		qReq, err := makeQuoteReq(cmdArgs[1:])
-		req = qReq
 		if err != nil {
 			log.Fatal(err.Error())
 		}
+		sendRequest(&c, qReq)
 	case "call":
 		req, err = makeReq(cmdArgs[1:])
 		if err != nil {
 			log.Fatal(err.Error())
 		}
+		sendRequest(&c, req)
+	case "pay":
+		payBtc(&c, cmdArgs)
 	default:
 		fmt.Printf("unrecognized command: %v", cmdArgs)
 	}
+}
 
+func sendRequest(c *node.Client, req *msg.OcReq) {
 	// Parse/attach payments
 	if *fDefer != "" {
 		pv, err := msg.NewPaymentValueParseString(*fDefer)
@@ -84,6 +89,25 @@ func main() {
 		log.Fatal(err.Error())
 	}
 	fmt.Printf("Got response:\n%v\n", resp.String())
+}
+
+func payBtc(c *node.Client, cmdArgs []string) {
+	amt := cmdArgs[1]
+	addr := cmdArgs[2]
+	pv, err := msg.NewPaymentValueParseString(amt)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	// TODO(ortutay): validate bitcoin address
+	pa := msg.PaymentAddr{
+		Currency: msg.BTC,
+		Addr:     addr,
+	}
+	txid, err := c.SendBtcPayment(pv, &pa)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	fmt.Printf("sent payment, txid: %v\n", txid)
 }
 
 func makeQuoteReq(args []string) (*msg.OcReq, error) {
@@ -105,13 +129,14 @@ func makeReq(args []string) (*msg.OcReq, error) {
 	if len(s) != 2 {
 		return nil, fmt.Errorf("expected server.method, but got: %v", args[0])
 	}
+	reqArgs := args[1:]
 	req := msg.OcReq{
 		ID:            "",
 		Sig:           "",
 		Nonce:         "",
 		Service:       s[0],
 		Method:        s[1],
-		Args:          []byte("[\"" + strings.Join(args[1:], "\", \"") + "\"]"),
+		Args:          reqArgs,
 		PaymentType:   "",
 		PaymentTxn:    "",
 		ContentLength: 0,
