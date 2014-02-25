@@ -12,35 +12,27 @@ const (
 	// TODO(ortutay): additional statuses
 )
 
-// "Header" or "Record", depending on how extensible this should be
-type Header struct {
+type Record struct {
 	Service string
-	Method string
+	Method string // Is "Method" the appropriate field?
 	Timestamp int
 	OcID cred.OcID
 	Status Status
 	PaymentType msg.PaymentType
 	PaymentValue msg.PaymentValue
+	Perf interface{} // Interface specific
 }
 
-// TODO(ortutay): evaluate if this is correct structure
-type Selection struct {
-	// selector parameters...
+// TODO(ortutay): may want a cursor to represent a selection
+
+func Put(rec Record) error {
+	return nil
 }
 
-func (s *Selection) SuccessRate() float64 {
+func Count(selector Record) int, error {
+	return nil
 }
 
-// TODO(ortutay): if we omit the concept of "performance," the following is not
-// needed...
-type Cursor interface {
-	Next() interface{}
+func Reduce(selector Record, reducer func(result interface{}, Record)) error {
+	return nil
 }
-
-type AvgPerfReducer interface {
-	// ...
-}
-
-func (s *Selection) AvgPerf() interface{} {
-}
-
