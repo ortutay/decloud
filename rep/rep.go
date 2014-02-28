@@ -1,11 +1,21 @@
 package rep
 
-import "github.com/ortutay/decloud/msg"
+import (
+	"fmt"
+	// "database/sql"
+	"github.com/ortutay/decloud/msg"
+	"github.com/ortutay/decloud/util"
+	// _ "github.com/mattn/go-sqlite3"
+	"code.google.com/p/leveldb-go/leveldb/db"
+	"code.google.com/p/leveldb-go/leveldb/table"
+)
 
 type Status string
 
 const (
 	PENDING Status = "pending"
+	SUCCESS = "success"
+	FAILURE = "failure"
 	// TODO(ortutay): additional statuses
 )
 
@@ -17,19 +27,37 @@ type Record struct {
 	Status       Status
 	PaymentType  msg.PaymentType
 	PaymentValue msg.PaymentValue
-	Perf         interface{} // Interface specific
+	Perf         interface{} // Service specific
 }
 
-// TODO(ortutay): may want a cursor to represent a selection
+type Cursor interface {
+	Next() *Record
+	Reset()
+}
+
+var DBFS = db.DefaultFileSystem
 
 func Put(rec Record) error {
+	fmt.Printf("put: %v\n", rec)
+	var dbf db.File
+	dbf, err := DBFS.Open(levelDbPath())
+	if err != nil {
+		dbf, err = DBFS.Create(levelDbPath())
+		if err != nil {
+			return fmt.Errorf("could not open or create db %v: %v",
+				levelDbPath(), err.Error())
+		}
+	}
+	w := table.NewWriter(dbf, nil)
+	defer w.Close()
+	err = w.Set([]byte("1"), []byte("red"), nil)
 	return nil
 }
 
-func Count(selector Record) (int, error) {
+func Reduce(selector Record, reduceFn func(matches Cursor) interface{}) error {
 	return nil
 }
 
-func Reduce(selector Record, reducer func(result interface{}, rec Record)) error {
-	return nil
+func levelDbPath() string {
+	return util.AppDir() + "/rep-leveldb.db"
 }
