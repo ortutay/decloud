@@ -21,6 +21,10 @@ func (bt *BtcTxid) String() string {
 
 type PaymentType string
 
+func (pt *PaymentType) String() string {
+	return string(*pt)
+}
+
 type OcID string
 
 func (o *OcID) String() string {

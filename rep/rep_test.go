@@ -1,17 +1,18 @@
 package rep
 
-import(
+import (
 	"fmt"
-	"testing"
-	"github.com/ortutay/decloud/util"
-	"github.com/ortutay/decloud/msg"
 	"io/ioutil"
-	// "os"
+	"os"
+	"testing"
+
+	"github.com/ortutay/decloud/msg"
+	"github.com/ortutay/decloud/util"
 )
 
 func TestRepPut(t *testing.T) {
 	dir, err := ioutil.TempDir("", "")
-	// defer os.RemoveAll(dir)
+	defer os.RemoveAll(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -19,15 +20,18 @@ func TestRepPut(t *testing.T) {
 	util.SetAppDir(dir)
 
 	rec := Record{
-		Service: "store",
-		Method: "put",
-		Timestamp: 1234,
-		OcID: msg.OcID("id-123"),
-		Status: SUCCESS,
-		PaymentType: msg.TXID,
+		Service:      "store",
+		Method:       "put",
+		Timestamp:    1234,
+		OcID:         msg.OcID("id-123"),
+		Status:       SUCCESS,
+		PaymentType:  msg.TXID,
 		PaymentValue: msg.PaymentValue{Amount: 1000, Currency: msg.BTC},
-		Perf: nil,
+		Perf:         nil,
 	}
 
-	Put(rec)
+	_, err = Put(&rec)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
