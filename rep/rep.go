@@ -86,19 +86,39 @@ func Put(rec *Record) (int64, error) {
 }
 
 func SuccessRate(sel *Record) (float64, error) {
-	db, err := openOrCreate()
+	counter := make(map[string]float64)
+	counter["total"] = float64(0)
+	counter["success"] = float64(0)
+	reducer := func(rec *Record) {
+		c := counter
+		if rec.Status == SUCCESS || rec.Status == FAILURE {
+			c["total"]++;
+		}
+		if rec.Status == SUCCESS {
+			c["success"]++;
+		}
+	}
+	err := Reduce(sel, reducer)
 	if err != nil {
 		return 0, err
 	}
+	if (counter["success"]) == 0 {
+		return -1, nil
+	}
+	return counter["success"]/counter["total"], nil
+}
+
+func Reduce(sel *Record, reduceFn func(rec *Record)) error {
+	db, err := openOrCreate()
+	if err != nil {
+		return err
+	}
 	defer db.Close()
 
-	total := float64(0)
-	success := float64(0)
 	query := selectLikeRecord(sel)
-	fmt.Printf("query %v\n", query)
 	rows, err := db.Query(query)
 	if err != nil {
-		return 0, fmt.Errorf("error while querying %v: %v", query, err.Error())
+		return fmt.Errorf("error while querying %v: %v", query, err.Error())
 	}
 	for rows.Next() {
 		var service, method, ocID, status, pvType, pvCurr, timestamp, perfHex []byte
@@ -131,24 +151,13 @@ func SuccessRate(sel *Record) (float64, error) {
 			rec.PaymentValue = &pv
 		}
 		if len(perfHex) != 0 {
-			panic("TODO: implement decoding")
+			panic("TODO: implement perf decoding")
 		}
 		if err != nil {
-			return 0, fmt.Errorf("error scanning with %v: %v", query, err.Error())
+			return fmt.Errorf("error scanning with %v: %v", query, err.Error())
 		}
-		if rec.Status == SUCCESS || rec.Status == FAILURE {
-			total++;
-		}
-		if rec.Status == SUCCESS {
-			success++;
-		}
+		reduceFn(&rec)
 	}
-
-	return success/total, nil
-}
-
-func Reduce(sel *Record, reduceFn func(rec *Record, res interface{}) interface{}) error {
-	// rows,  = rowsLikeRecord(sel)
 	return nil
 }
 
