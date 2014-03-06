@@ -101,7 +101,6 @@ func SuccessRate(sel *Record) (float64, error) {
 		return 0, fmt.Errorf("error while querying %v: %v", query, err.Error())
 	}
 	for rows.Next() {
-		// var service, method, ocID, status, pvType, pvCurr, perfHex, timestamp, pvAmt interface{}
 		var service, method, ocID, status, pvType, pvCurr, timestamp, perfHex []byte
 		var pvAmt int64
 		err := rows.Scan(
@@ -129,7 +128,6 @@ func SuccessRate(sel *Record) (float64, error) {
 				Amount: pvAmt,
 				Currency: msg.Currency(pvCurr),
 			}
-			fmt.Printf("pv %v %v\n", pvAmt, pvCurr)
 			rec.PaymentValue = &pv
 		}
 		if len(perfHex) != 0 {
@@ -144,7 +142,6 @@ func SuccessRate(sel *Record) (float64, error) {
 		if rec.Status == SUCCESS {
 			success++;
 		}
-		fmt.Printf("rec: %v\n", rec)
 	}
 
 	return success/total, nil
