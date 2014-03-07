@@ -16,12 +16,20 @@ import (
 	"github.com/ortutay/decloud/util"
 )
 
+// General flags
+var fPort = goopt.Int([]string{"-p", "--port"}, 9443, "")
+var fAppDir = goopt.String([]string{"--app-dir"}, "~/.decloud", "")
 // var fTestNet = goopt.Flag([]string{"-t", "--test-net"}, []string{"--main-net"}, "Use testnet", "Use mainnet")
+
+// Cross-service flags
 var fMinFee = goopt.String([]string{"--min-fee"}, "calc.calc=.01BTC", "")
 var fMinCoins = goopt.String([]string{"--min-coins"}, "calc.calc=.1BTC", "")
 var fMaxWork = goopt.String([]string{"--max-work"}, "calc.calc={\"bytes\": 1000, \"queries\": 100}", "")
-var fPort = goopt.Int([]string{"-p", "--port"}, 9443, "")
-var fAppDir = goopt.String([]string{"--app-dir"}, "~/.decloud", "")
+
+// Store service flags
+var fStoreDir = goopt.String([]string{"--store.dir"}, "~/.decloud-store", "")
+var fStoreMaxSpace = goopt.String([]string{"--store.max-space"}, "1GB", "")
+var fStoreGbPricePerMo = goopt.String([]string{"--store.gb-price-per-mo"}, ".001BTC", "")
 
 func main() {
 	goopt.Parse(nil)
@@ -36,6 +44,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+	conf.Setting("store.dir", *fStoreDir)
+	conf.Setting("store.max-space", getSpace("", *fStoreMaxSpace))
+	conf.Setting("store.gb-price-per-mo",
+		getPaymentValue("", *fStoreGbPricePerMo))
 	fmt.Printf("running with conf: %v\n", conf)
 
 	util.SetAppDir(*fAppDir)
@@ -120,31 +132,25 @@ func makeConf(minFeeFlag string, minCoinsFlag string, maxWorkFlag string) (*conf
 	return &conf, nil
 }
 
-func getPolicy(arg string, cmd conf.PolicyCmd, parse func(string, string) (interface{}, error)) (*conf.Policy, error) {
+func getPolicy(arg string, cmd conf.PolicyCmd, parse func(string, string) (interface{})) (*conf.Policy, error) {
 	s := strings.Split(arg, "=")
 	if len(s) != 2 {
 		return nil, fmt.Errorf("could not parse: %v", arg)
 	}
-	psel, err := getSelector(s[0])
-	if err != nil {
-		return nil, err
-	}
-	pArg, err := parse(s[0], s[1])
-	if err != nil {
-		return nil, err
-	}
+	psel := getSelector(s[0])
+	pArg := parse(s[0], s[1])
 	policy := conf.Policy{
 		Selector: *psel,
 		Cmd:      cmd,
 		Args:     []interface{}{pArg},
 	}
-	return &policy, err
+	return &policy, nil
 }
 
-func getSelector(sel string) (*conf.PolicySelector, error) {
+func getSelector(sel string) *conf.PolicySelector {
 	s := strings.Split(sel, ".")
 	if len(s) != 2 {
-		return nil, fmt.Errorf("could not parse: %v", sel)
+		log.Fatalf("could not parse: %v", sel)
 	}
 	service := s[0]
 	method := s[1]
@@ -161,24 +167,41 @@ func getSelector(sel string) (*conf.PolicySelector, error) {
 
 	srvSupported, srvOk := supported[service]
 	if !srvOk {
-		return nil, fmt.Errorf("unsupported service: '%v'", service)
+		log.Fatalf("unsupported service: '%v'", service)
 	}
 	_, methOk := srvSupported[method]
 	if !methOk {
-		return nil, fmt.Errorf("unsupported method: '%v'", method)
+		log.Fatalf("unsupported method: '%v'", method)
 	}
-	return &conf.PolicySelector{Service: service, Method: method}, nil
+	return &conf.PolicySelector{Service: service, Method: method}
 }
 
-func getPaymentValue(srvMeth, pv string) (interface{}, error) {
-	return msg.NewPaymentValueParseString(pv)
+func getPaymentValue(srvMeth, pvStr string) interface{} {
+	pv, err := msg.NewPaymentValueParseString(pvStr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return pv
 }
 
-func getWork(srvMeth, w string) (interface{}, error) {
+func getWork(srvMeth, w string) interface{} {
 	switch srvMeth {
 	case "calc.calc":
-		return calc.NewWork(w)
+		work, err := calc.NewWork(w)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return work
 	default:
-		return nil, fmt.Errorf("no support for work flag for %v", srvMeth)
+		log.Fatal(fmt.Errorf("no support for work flag for %v", srvMeth))
 	}
+	return nil // unreachable
+}
+
+func getSpace(srvMeth, str string) interface{} {
+	size, err := util.ByteSizeParseString(str)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return size
 }

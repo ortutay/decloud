@@ -31,8 +31,18 @@ type Policy struct {
 }
 
 type Conf struct {
+	// TODO(ortutay): distinction between "policies" and "settings" may not be
+	// useful
 	Policies []Policy
+	Settings map[string]interface{}
 	BtcAddr  BtcAddr // TODO(ortutay): do not rely on address re-use
+}
+
+func (c *Conf) Setting(name string, value interface{}) {
+	if c.Settings == nil {
+		c.Settings = make(map[string]interface{})
+	}
+	c.Settings[name] = value
 }
 
 func (c *Conf) MatchingPolicies(service string, method string) []*Policy {
