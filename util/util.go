@@ -1,6 +1,7 @@
 package util
 
 import (
+	"math/big"
 	"bufio"
 	"errors"
 	"fmt"
@@ -139,4 +140,62 @@ func makeAppDir() error {
 	} else {
 		return err
 	}
+}
+
+type ByteSize int
+
+const (
+	_           = iota // ignore first value by assigning to blank identifier
+	KB ByteSize = 1000
+	MB ByteSize = 1000000
+	GB ByteSize = 1000000000
+	TB ByteSize = 1000000
+)
+
+func (b ByteSize) String() string {
+	switch {
+	case b >= TB:
+		return fmt.Sprintf("%.2fTB", b/TB)
+	case b >= GB:
+		return fmt.Sprintf("%.2fGB", b/GB)
+	case b >= MB:
+		return fmt.Sprintf("%.2fMB", b/MB)
+	case b >= KB:
+		return fmt.Sprintf("%.2fKB", b/KB)
+	}
+	return fmt.Sprintf("%.2fB", b)
+}
+
+func (b ByteSize) Int() int {
+	return int(b)
+}
+
+func (b ByteSize) Float64() float64 {
+	return float64(b)
+}
+
+func ByteSizeParseString(str string) (ByteSize, error) {
+	re := regexp.MustCompile("(?i)([0-9.]+) *(KB|MB|GB|TB)")
+	m := re.FindStringSubmatch(str)
+	if len(m) != 3 {
+		return 0, fmt.Errorf("could not parse: %v", str)
+	}
+	r := new(big.Rat)
+	_, err := fmt.Sscan(m[1], r)
+	if err != nil {
+		return 0, fmt.Errorf("could not parse: %v", m[1])
+	}
+	f, _ := r.Float64()
+	unit := strings.ToUpper(m[2])
+	switch unit {
+	case "KB":
+		return ByteSize(f*KB.Float64()), nil
+	case "MB":
+		return ByteSize(f*MB.Float64()), nil
+	case "GB":
+		return ByteSize(f*GB.Float64()), nil
+	case "TB":
+		return ByteSize(f*TB.Float64()), nil
+	}
+	return 0, fmt.Errorf("could not parse: %v", str)
 }
