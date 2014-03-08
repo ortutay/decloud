@@ -21,6 +21,11 @@ const (
 	QUOTE_METHOD     = "quote"
 )
 
+type Work struct {
+	Queries int `json:"queries"`
+	Bytes   int `json:"bytes"`
+}
+
 func NewQuoteReqFromReq(orig *msg.OcReq) (*msg.OcReq, error) {
 	work, err := Measure(orig)
 	if err != nil {
@@ -68,11 +73,6 @@ func NewCalcReq(queries []string) *msg.OcReq {
 		Body:          []byte(""),
 	}
 	return &msg
-}
-
-type Work struct {
-	Queries int `json:"queries"`
-	Bytes   int `json:"bytes"`
 }
 
 func (w *Work) String() string {

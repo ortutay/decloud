@@ -40,15 +40,27 @@ func main() {
 		}
 	}
 	fmt.Printf("cmd args: %v\n", cmdArgs)
-	conf, err := makeConf(*fMinFee, *fMinCoins, *fMaxWork)
+	config, err := makeConf(*fMinFee, *fMinCoins, *fMaxWork)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	conf.Setting("store.dir", *fStoreDir)
-	conf.Setting("store.max-space", getSpace("", *fStoreMaxSpace))
-	conf.Setting("store.gb-price-per-mo",
-		getPaymentValue("", *fStoreGbPricePerMo))
-	fmt.Printf("running with conf: %v\n", conf)
+	// TODO(ortutay): s/"store"/store.SERVICE_NAME/
+	config.AddPolicy(&conf.Policy{
+		Selector: conf.PolicySelector{Service: "store"},
+		Cmd: conf.STORE_DIR,
+		Args: []interface{}{*fStoreDir},
+	})
+	config.AddPolicy(&conf.Policy{
+		Selector: conf.PolicySelector{Service: "store"},
+		Cmd: conf.STORE_MAX_SPACE,
+		Args: []interface{}{getSpace("", *fStoreMaxSpace)},
+	})
+	config.AddPolicy(&conf.Policy{
+		Selector: conf.PolicySelector{Service: "store"},
+		Cmd: conf.STORE_GB_PRICE_PER_MO,
+		Args: []interface{}{getPaymentValue("", *fStoreGbPricePerMo)},
+	})
+	fmt.Printf("running with conf: %v\n", config)
 
 	util.SetAppDir(*fAppDir)
 	ocCred, err := cred.NewOcCredLoadOrCreate("")
@@ -67,14 +79,14 @@ func main() {
 
 	// TODO(ortutay): configure which services to run from command line args
 	services := make(map[string]node.Handler)
-	services[calc.SERVICE_NAME] = calc.CalcService{Conf: conf}
+	services[calc.SERVICE_NAME] = calc.CalcService{Conf: config}
 	services[payment.SERVICE_NAME] = &payment.PaymentService{BitcoindConf: bConf}
 	mux := node.ServiceMux{
 		Services: services,
 	}
 	s := node.Server{
 		Cred:    &cred.Cred{OcCred: *ocCred, Coins: []cred.BtcCred{}},
-		Conf:    conf,
+		Conf:    config,
 		Addr:    addr,
 		Handler: &mux,
 	}

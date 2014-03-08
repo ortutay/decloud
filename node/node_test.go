@@ -36,6 +36,22 @@ func printBitcoindExpected() {
 	println("Note: bitcoind daemon expected to be running")
 }
 
+func TestBtcSignRequest(t *testing.T) {
+	printBitcoindExpected()
+	btcConf, err := util.LoadBitcoindConf("")
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	c, err := newClient(btcConf)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = c.BtcSignRequest(util.B2S(.08), util.B2S(.08), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func TestRoundTrip(t *testing.T) {
 	addr := ":9443"
 	handler := calc.CalcService{}
@@ -58,7 +74,7 @@ func TestRoundTrip(t *testing.T) {
 
 	req := calc.NewCalcReq([]string{"1 2 +"})
 	println("send req")
-	resp, err := c.SendRequest(addr, req)
+	resp, err := c.SignAndSend(addr, req)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -100,7 +116,7 @@ func TestPaymentRequired(t *testing.T) {
 		log.Fatal(err)
 	}
 	req := calc.NewCalcReq([]string{"1 2 +"})
-	resp, err := c.SendRequest(addr, req)
+	resp, err := c.SignAndSend(addr, req)
 	if resp.Status != msg.PAYMENT_REQUIRED {
 		t.Errorf("expected PAYMENT_REQUIRED, but got: %v\n", resp.Status)
 	}
@@ -159,7 +175,7 @@ func TestPaymentRoundTrip(t *testing.T) {
 	}
 	quoteReq := calc.NewQuoteReq(work)
 	fmt.Printf("quote req: %v\n", quoteReq)
-	resp, err := c.SendRequest(addr, quoteReq)
+	resp, err := c.SignAndSend(addr, quoteReq)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -174,7 +190,7 @@ func TestPaymentRoundTrip(t *testing.T) {
 	fmt.Printf("get payment addr\n")
 	payAddrReq := payment.NewPaymentAddrReq(msg.BTC)
 	fmt.Printf("req: %v\n", payAddrReq)
-	resp, err = c.SendRequest(addr, payAddrReq)
+	resp, err = c.SignAndSend(addr, payAddrReq)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -192,7 +208,7 @@ func TestPaymentRoundTrip(t *testing.T) {
 	lowPv.Amount -= 1
 	calcReqLowPv := msg.OcReq(*calcReq)
 	calcReqLowPv.AttachDeferredPayment(&lowPv)
-	resp, err = c.SendRequest(addr, &calcReqLowPv)
+	resp, err = c.SignAndSend(addr, &calcReqLowPv)
 	if resp.Status != msg.TOO_LOW {
 		log.Fatalf("expected status %v, got %v", msg.TOO_LOW, resp.Status)
 	}
@@ -201,7 +217,7 @@ func TestPaymentRoundTrip(t *testing.T) {
 	go s.Serve(listener)
 	fmt.Printf("send req with deferred payment")
 	calcReq.AttachDeferredPayment(pv)
-	resp, err = c.SendRequest(addr, calcReq)
+	resp, err = c.SignAndSend(addr, calcReq)
 	if resp.Status != msg.OK {
 		log.Fatalf("expected status %v, got %v", msg.OK, resp.Status)
 	}
@@ -219,7 +235,7 @@ func TestPaymentRoundTrip(t *testing.T) {
 		log.Fatal(err)
 	}
 	fmt.Printf("txid req: %v\n", txidReq)
-	resp, err = c.SendRequest(addr, txidReq)
+	resp, err = c.SignAndSend(addr, txidReq)
 	if resp.Status != msg.OK {
 		log.Fatalf("expected status %v, got %v", msg.OK, resp.Status)
 	}

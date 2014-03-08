@@ -14,9 +14,20 @@ import (
 	"github.com/ortutay/decloud/util"
 )
 
+// General flags
 var fAddr = goopt.String([]string{"-a", "--addr"}, "", "Remote host address")
 var fAppDir = goopt.String([]string{"--app-dir"}, "~/.decloud", "")
-var fDefer = goopt.String([]string{"--defer"}, "", "Included deferred payment")
+var fCoinsLower = goopt.String([]string{"--coins-lower"}, "0btc", "")
+var fCoinsUpper = goopt.String([]string{"--coins-upper"}, "10btc", "")
+// var fTestNet = goopt.Flag([]string{"-t", "--test-net"}, []string{"--main-net"}, "Use testnet", "Use mainnet")
+
+// Cross-service flags
+var fDefer = goopt.String([]string{"--defer"}, "", "Promise deferred payment")
+
+// Store service flags
+var fStoreFile = goopt.String([]string{"--store.file"}, "", "File to store")
+var fStoreFor = goopt.String([]string{"--store.for"}, "1h", "How long to store")
+var fStoreGbPricePerMo = goopt.String([]string{"--store.gb-price-per-mo"}, ".001BTC", "")
 
 func main() {
 	goopt.Parse(nil)
@@ -32,11 +43,24 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
+	pvLower, err := msg.NewPaymentValueParseString(*fCoinsLower)
+	if err != nil {
+		log.Fatal(err)
+	}
+	pvUpper, err := msg.NewPaymentValueParseString(*fCoinsUpper)
+	if err != nil {
+		log.Fatal(err)
+	}
+	coins, err := cred.GetBtcCredInRange(pvLower.Amount, pvUpper.Amount, bConf)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
 	c := node.Client{
 		BtcConf: bConf,
 		Cred: cred.Cred{
 			OcCred: *ocCred,
-			Coins:  []cred.BtcCred{},
+			Coins:  *coins,
 		},
 	}
 	fmt.Printf("client %v\n", c)
@@ -48,6 +72,10 @@ func main() {
 		}
 	}
 	fmt.Printf("cmd args: %v\n", cmdArgs)
+	if len(cmdArgs) == 0 {
+		// TODO(ortutay): print usage info
+		return
+	}
 
 	var req *msg.OcReq
 	switch cmdArgs[0] {
@@ -81,14 +109,16 @@ func sendRequest(c *node.Client, req *msg.OcReq) {
 	}
 
 	// TODO(ortutay): handle non-deferred payments
-
-	fmt.Printf("Sending request:\n%v\n\n", req.String())
-	fmt.Printf("addr %v\n", *fAddr)
+	err := c.SignRequest(req)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	fmt.Printf("sending request to %v\n%v\n\n", *fAddr, req.String())
 	resp, err := c.SendRequest(*fAddr, req)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	fmt.Printf("Got response:\n%v\n", resp.String())
+	fmt.Printf("got response\n%v\n", resp.String())
 }
 
 func payBtc(c *node.Client, cmdArgs []string) {

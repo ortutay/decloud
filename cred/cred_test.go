@@ -247,3 +247,32 @@ func TestInvalidBtcSignatureFails(t *testing.T) {
 		t.Errorf("expected invalid address error, but got  %v", err)
 	}
 }
+
+func TestInputsInRangeFound(t *testing.T) {
+	addrsList := []addressBalance{
+		addressBalance{Amount: 100, Address: "123"},
+		addressBalance{Amount: 200, Address: "456"},
+		addressBalance{Amount: 300, Address: "789"},
+		addressBalance{Amount: 300, Address: "012"},
+	}
+	use, err := inputsInRange(&addrsList, 150, 350, 2, len(addrsList) - 1)
+	if err != nil {
+		t.Error(err)
+	}
+	if (*use)[0].Addr != "123" || (*use)[1].Addr != "456" {
+		t.FailNow()
+	}
+}
+
+func TestInputsInRangeNotFound(t *testing.T) {
+	addrsList := []addressBalance{
+		addressBalance{Amount: 100, Address: "123"},
+		addressBalance{Amount: 200, Address: "456"},
+		addressBalance{Amount: 300, Address: "789"},
+		addressBalance{Amount: 300, Address: "012"},
+	}
+	_, err := inputsInRange(&addrsList, 150, 350, 3, len(addrsList) - 1)
+	if err == nil {
+		t.FailNow()
+	}
+}

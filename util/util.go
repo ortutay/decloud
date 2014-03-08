@@ -199,3 +199,12 @@ func ByteSizeParseString(str string) (ByteSize, error) {
 	}
 	return 0, fmt.Errorf("could not parse: %v", str)
 }
+
+// TODO(ortutay): for safety and convenience, we should have a single BTC type
+func B2S(btc float64) int64 {
+	return int64(btc * 1e8)
+}
+
+func S2B(satoshis int64) float64 {
+	return float64(satoshis) / 1e8
+}

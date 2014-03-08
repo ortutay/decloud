@@ -3,6 +3,7 @@ package cred
 // TODO(ortutay): different name?
 
 import (
+	"sort"
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -53,10 +54,6 @@ func (c *Cred) SignOcReq(req *msg.OcReq, bConf *util.BitcoindConf) error {
 
 type OcCred struct {
 	Priv *ecdsa.PrivateKey // TODO(ortutay): make private field?
-}
-
-type BtcCred struct {
-	Addr string
 }
 
 func NewOcCred() (*OcCred, error) {
@@ -248,6 +245,92 @@ func verifyOcSig(reqHash []byte, ocID msg.OcID, sig string) bool {
 		Y:     &y,
 	}
 	return ecdsa.Verify(&pub, reqHash, &r, &s)
+}
+
+
+type BtcCred struct {
+	Addr string
+}
+
+type addressBalance struct {
+	Address string
+	Amount int64
+}
+
+type ByAmount []addressBalance
+func (a ByAmount) Len() int { return len(a) }
+func (a ByAmount) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ByAmount) Less(i, j int) bool { return a[i].Amount < a[j].Amount }
+
+func inputsInRange(unspent *[]addressBalance, min, max int64, iter int, right int) (*[]BtcCred, error) {
+	// Assume list is already sorted
+	if iter == 0 {
+		return nil, fmt.Errorf("couldn't find matching inputs")
+	}
+	for i := right; i >= 0; i-- {
+		u := (*unspent)[i]
+		bc := BtcCred{Addr: u.Address}
+		amt := u.Amount
+		if amt > max {
+			continue;
+		}
+		if iter == 1 {
+			if amt >= min {
+				return &[]BtcCred{bc}, nil
+			}
+		} else {
+			r, _ := inputsInRange(unspent, min - amt, max - amt, iter - 1, i - 1)
+			if r != nil {
+				result := append(*r, bc)
+				return &result, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("couldn't find matching inputs")
+}
+
+func GetBtcCredInRange(min, max int64, conf *util.BitcoindConf) (*[]BtcCred, error) {
+	cmd, err := btcjson.NewListUnspentCmd("")
+	if err != nil {
+		return nil, fmt.Errorf("error while making cmd: %v", err.Error())
+	}
+	resp, err := util.SendBtcRpc(cmd, conf)
+	if err != nil {
+		return nil, fmt.Errorf("error while making cmd: %v", err.Error())
+	}
+	if resp.Error != nil {
+		return nil, fmt.Errorf("error during bitcoind JSON-RPC: %v", resp.Error)
+	}
+	addrs := make(map[string]*addressBalance)
+	unspent := resp.Result.([]btcjson.ListUnSpentResult)
+	for _, u := range unspent {
+		if _, ok := addrs[u.Address]; !ok {
+			addrs[u.Address] = &addressBalance{
+				Address: u.Address,
+				Amount: 0,
+			}
+		}
+		ab := addrs[u.Address]
+		ab.Amount += util.B2S(u.Amount)
+	}
+	addrsList := make([]addressBalance, len(addrs))
+	i := 0
+	for _, v := range addrs {
+		addrsList[i] = *v
+		i++
+	}
+	sort.Sort(ByAmount(addrsList))
+	var use *[]BtcCred
+	for iter := 1; iter <= 5; iter++ {
+		use, err = inputsInRange(&addrsList, min, max, iter, len(addrsList) - 1)
+		if use != nil {
+			break
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	return use, nil
 }
 
 func (bc *BtcCred) SignOcReq(req *msg.OcReq, conf *util.BitcoindConf) error {

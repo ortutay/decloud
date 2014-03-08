@@ -16,6 +16,11 @@ const (
 	MAX_WORK            = "max-work"
 	// TODO(ortutay): add rate-limit
 	// TODO(ortutay): additional policy commands
+
+	// "store" service commands
+	STORE_DIR = "store-dir"
+	STORE_MAX_SPACE = "store-max-space"
+	STORE_GB_PRICE_PER_MO = "store-gb-price-per-mo"
 )
 
 type PolicySelector struct {
@@ -31,19 +36,23 @@ type Policy struct {
 }
 
 type Conf struct {
-	// TODO(ortutay): distinction between "policies" and "settings" may not be
-	// useful
 	Policies []Policy
-	Settings map[string]interface{}
-	BtcAddr  BtcAddr // TODO(ortutay): do not rely on address re-use
+
+	// TODO(ortutay): do not rely on address re-use. probably, this should just
+	// be another "Policy"
+	BtcAddr  BtcAddr
 }
 
-func (c *Conf) Setting(name string, value interface{}) {
-	if c.Settings == nil {
-		c.Settings = make(map[string]interface{})
-	}
-	c.Settings[name] = value
+func (c *Conf) AddPolicy(policy *Policy) {
+	c.Policies = append(c.Policies, *policy)
 }
+
+// func (c *Conf) Setting(name string, value interface{}) {
+// 	if c.Settings == nil {
+// 		c.Settings = make(map[string]interface{})
+// 	}
+// 	c.Settings[name] = value
+// }
 
 func (c *Conf) MatchingPolicies(service string, method string) []*Policy {
 	fmt.Printf("compare %v %v to policies: %v\n", service, method, c.Policies)
