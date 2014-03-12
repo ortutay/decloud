@@ -1,9 +1,0 @@
-package peer
-
-import (
-	"testing"
-)
-
-func TestGetSet(t *testing.T) {
-	ocID, err := ocIDForCoin("1abc")
-}
