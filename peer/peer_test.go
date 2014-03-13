@@ -3,7 +3,6 @@ package peer
 import (
 	"io/ioutil"
 	"os"
-	"fmt"
 	"testing"
 
 	"code.google.com/p/leveldb-go/leveldb/db"
@@ -75,5 +74,60 @@ func TestPeerFromReq(t *testing.T) {
 	p, err := NewPeerFromReq(req, btcConf)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if p.OcID != req.ID {
+		t.FailNow()
+	}
+}
+
+func TestPeerFromReqCoinReuse(t *testing.T) {
+	defer os.RemoveAll(initDir(t))
+	ocCred1, err := cred.NewOcCred()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ocCred2, err := cred.NewOcCred()
+	if err != nil {
+		t.Fatal(err)
+	}
+	btcConf, err := util.LoadBitcoindConf("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// TODO(ortutay): this test is flakey, as we may not have any BTC at all
+	btcCreds, err := cred.GetBtcCredInRange(0, util.B2S(1000), btcConf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req1 := calc.NewCalcReq([]string{"1 2 +"})
+	err = ocCred1.SignOcReq(req1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req2 := calc.NewCalcReq([]string{"1 2 +"})
+	err = ocCred2.SignOcReq(req2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, bc := range *btcCreds  {
+		err = bc.SignOcReq(req1, btcConf)
+		err = bc.SignOcReq(req2, btcConf)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	p1, err := NewPeerFromReq(req1, btcConf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p1.OcID != req1.ID {
+		t.FailNow()
+	}
+	p2, err := NewPeerFromReq(req2, btcConf)
+	if err == nil || err != COIN_REUSE {
+		t.Fatal("Expected COIN_REUSE error")
+	}
+	if p2 != nil {
+		t.FailNow()
 	}
 }
