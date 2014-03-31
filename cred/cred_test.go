@@ -255,7 +255,7 @@ func TestInputsInRangeFound(t *testing.T) {
 		addressBalance{Amount: 300, Address: "789"},
 		addressBalance{Amount: 300, Address: "012"},
 	}
-	use, err := inputsInRange(&addrsList, 150, 350, 2, len(addrsList) - 1)
+	use, err := inputsInRange(&addrsList, 150, 350, 2, len(addrsList)-1)
 	if err != nil {
 		t.Error(err)
 	}
@@ -271,7 +271,7 @@ func TestInputsInRangeNotFound(t *testing.T) {
 		addressBalance{Amount: 300, Address: "789"},
 		addressBalance{Amount: 300, Address: "012"},
 	}
-	_, err := inputsInRange(&addrsList, 150, 350, 3, len(addrsList) - 1)
+	_, err := inputsInRange(&addrsList, 150, 350, 3, len(addrsList)-1)
 	if err == nil {
 		t.FailNow()
 	}

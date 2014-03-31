@@ -17,16 +17,9 @@ import (
 var _ = fmt.Printf
 
 func newClient(btcConf *util.BitcoindConf) (*Client, error) {
-	ocCred, err := cred.NewOcCred()
-	if err != nil {
-		return nil, err
-	}
 	c := Client{
 		BtcConf: btcConf,
-		Cred: cred.Cred{
-			OcCred: *ocCred,
-			Coins:  []cred.BtcCred{},
-		},
+		Cred: cred.Cred{OcCred: *cred.NewOcCred()},
 	}
 	return &c, nil
 }

@@ -19,6 +19,7 @@ var fAddr = goopt.String([]string{"-a", "--addr"}, "", "Remote host address")
 var fAppDir = goopt.String([]string{"--app-dir"}, "~/.decloud", "")
 var fCoinsLower = goopt.String([]string{"--coins-lower"}, "0btc", "")
 var fCoinsUpper = goopt.String([]string{"--coins-upper"}, "10btc", "")
+
 // var fTestNet = goopt.Flag([]string{"-t", "--test-net"}, []string{"--main-net"}, "Use testnet", "Use mainnet")
 
 // Cross-service flags
@@ -59,8 +60,9 @@ func main() {
 	c := node.Client{
 		BtcConf: bConf,
 		Cred: cred.Cred{
-			OcCred: *ocCred,
-			Coins:  *coins,
+			OcCred:  *ocCred,
+			BtcConf: bConf,
+			Coins:   *coins,
 		},
 	}
 	fmt.Printf("client %v\n", c)

@@ -3,7 +3,6 @@ package cred
 // TODO(ortutay): different name?
 
 import (
-	"sort"
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -13,7 +12,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math/big"
+	"sort"
 	"strings"
 
 	"github.com/conformal/btcjson"
@@ -33,8 +34,9 @@ type Signer interface {
 }
 
 type Cred struct {
-	OcCred OcCred
-	Coins  []BtcCred
+	OcCred  OcCred
+	BtcConf *util.BitcoindConf
+	Coins   []BtcCred
 }
 
 func (c *Cred) SignOcReq(req *msg.OcReq, bConf *util.BitcoindConf) error {
@@ -56,23 +58,23 @@ type OcCred struct {
 	Priv *ecdsa.PrivateKey // TODO(ortutay): make private field?
 }
 
-func NewOcCred() (*OcCred, error) {
+func NewOcCred() *OcCred {
 	randBytes := make([]byte, NODE_ID_RAND_NUM_BYTES)
 	_, err := rand.Read(randBytes)
 	if err != nil {
-		return nil, errors.New("error generating random bytes")
+		log.Fatal(err)
 	}
 
 	curve := elliptic.P256()
 	priv, err := ecdsa.GenerateKey(curve, bytes.NewReader(randBytes))
 	if err != nil {
-		return nil, errors.New("error generating ECDSA key")
+		log.Fatal(err)
 	}
 
 	ocCred := OcCred{
 		Priv: priv,
 	}
-	return &ocCred, nil
+	return &ocCred
 }
 
 func NewOcCredLoadOrCreate(filename string) (*OcCred, error) {
@@ -83,11 +85,8 @@ func NewOcCredLoadOrCreate(filename string) (*OcCred, error) {
 	if file != nil {
 		return NewOcCredLoadFromFile(filename)
 	} else {
-		ocCred, err := NewOcCred()
-		if err != nil {
-			return nil, err
-		}
-		err = ocCred.StorePrivateKey("")
+		ocCred := NewOcCred()
+		err := ocCred.StorePrivateKey("")
 		if err != nil {
 			return nil, err
 		}
@@ -247,20 +246,20 @@ func verifyOcSig(reqHash []byte, ocID msg.OcID, sig string) bool {
 	return ecdsa.Verify(&pub, reqHash, &r, &s)
 }
 
-
 type BtcCred struct {
 	Addr string
 }
 
 type addressBalance struct {
 	Address string
-	Amount int64
+	Amount  int64
 }
 
-type ByAmount []addressBalance
-func (a ByAmount) Len() int { return len(a) }
-func (a ByAmount) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a ByAmount) Less(i, j int) bool { return a[i].Amount < a[j].Amount }
+type byAmount []addressBalance
+
+func (a byAmount) Len() int           { return len(a) }
+func (a byAmount) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a byAmount) Less(i, j int) bool { return a[i].Amount < a[j].Amount }
 
 func inputsInRange(unspent *[]addressBalance, min, max int64, iter int, right int) (*[]BtcCred, error) {
 	// Assume list is already sorted
@@ -272,14 +271,14 @@ func inputsInRange(unspent *[]addressBalance, min, max int64, iter int, right in
 		bc := BtcCred{Addr: u.Address}
 		amt := u.Amount
 		if amt > max {
-			continue;
+			continue
 		}
 		if iter == 1 {
 			if amt >= min {
 				return &[]BtcCred{bc}, nil
 			}
 		} else {
-			r, _ := inputsInRange(unspent, min - amt, max - amt, iter - 1, i - 1)
+			r, _ := inputsInRange(unspent, min-amt, max-amt, iter-1, i-1)
 			if r != nil {
 				result := append(*r, bc)
 				return &result, nil
@@ -307,7 +306,7 @@ func GetBtcCredInRange(min, max int64, conf *util.BitcoindConf) (*[]BtcCred, err
 		if _, ok := addrs[u.Address]; !ok {
 			addrs[u.Address] = &addressBalance{
 				Address: u.Address,
-				Amount: 0,
+				Amount:  0,
 			}
 		}
 		ab := addrs[u.Address]
@@ -319,10 +318,10 @@ func GetBtcCredInRange(min, max int64, conf *util.BitcoindConf) (*[]BtcCred, err
 		addrsList[i] = *v
 		i++
 	}
-	sort.Sort(ByAmount(addrsList))
+	sort.Sort(byAmount(addrsList))
 	var use *[]BtcCred
 	for iter := 1; iter <= 5; iter++ {
-		use, err = inputsInRange(&addrsList, min, max, iter, len(addrsList) - 1)
+		use, err = inputsInRange(&addrsList, min, max, iter, len(addrsList)-1)
 		if use != nil {
 			break
 		}

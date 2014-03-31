@@ -4,12 +4,12 @@ import (
 	"bufio"
 	"fmt"
 	"net"
-	"sort"
 
 	"github.com/conformal/btcjson"
 	"github.com/ortutay/decloud/conf"
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
+	"github.com/ortutay/decloud/peer"
 	"github.com/ortutay/decloud/util"
 )
 
@@ -26,84 +26,8 @@ func (c *Client) SignAndSend(addr string, req *msg.OcReq) (*msg.OcResp, error) {
 	return c.SendRequest(addr, req)
 }
 
-type AddressBalance struct {
-	Address string
-	Amount int64
-}
-
-type ByAmount []AddressBalance
-func (a ByAmount) Len() int { return len(a) }
-func (a ByAmount) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a ByAmount) Less(i, j int) bool { return a[i].Amount < a[j].Amount }
-
 func (c *Client) BtcSignRequest(min, max int64, req *msg.OcReq) error {
-	cmd, err := btcjson.NewListUnspentCmd("")
-	if err != nil {
-		return fmt.Errorf("error while making cmd: %v", err.Error())
-	}
-	resp, err := util.SendBtcRpc(cmd, c.BtcConf)
-	if err != nil {
-		return fmt.Errorf("error while making cmd: %v", err.Error())
-	}
-	if resp.Error != nil {
-		return fmt.Errorf("error during bitcoind JSON-RPC: %v", resp.Error)
-	}
-	addrs := make(map[string]*AddressBalance)
-	unspent := resp.Result.([]btcjson.ListUnSpentResult)
-	for _, u := range unspent {
-		if _, ok := addrs[u.Address]; !ok {
-			addrs[u.Address] = &AddressBalance{
-				Address: u.Address,
-				Amount: 0,
-			}
-		}
-		ab := addrs[u.Address]
-		ab.Amount += util.B2S(u.Amount)
-	}
-	addrsList := make([]AddressBalance, len(addrs))
-	i := 0
-	for _, v := range addrs {
-		addrsList[i] = *v
-		i++
-	}
-	sort.Sort(ByAmount(addrsList))
-	var use *[]AddressBalance
-	for iter := 1; iter <= 5; iter++ {
-		use, err = inputsInRange(&addrsList, min, max, iter, len(addrsList) - 1)
-		if use != nil {
-			break
-		}
-	}
-	if err != nil {
-		return err
-	}
 	return nil
-}
-
-func inputsInRange(unspent *[]AddressBalance, min, max int64, iter int, right int) (*[]AddressBalance, error) {
-	if iter == 0 {
-		return nil, fmt.Errorf("couldn't find matching inputs")
-	}
-	// Assume list is already sorted
-	for i := right; i >= 0; i-- {
-		u := (*unspent)[i]
-		amt := u.Amount
-		if amt > max {
-			continue;
-		}
-		if iter == 1 {
-			if amt >= min {
-				return &[]AddressBalance{u}, nil
-			}
-		} else {
-			r, _ := inputsInRange(unspent, min - amt, max - amt, iter - 1, i - 1)
-			if r != nil {
-				result := append(*r, u)
-				return &result, nil
-			}
-		}
-	}
-	return nil, fmt.Errorf("couldn't find matching inputs")
 }
 
 func (c *Client) SignRequest(req *msg.OcReq) error {
@@ -176,6 +100,7 @@ func (sm *ServiceMux) Handle(req *msg.OcReq) (*msg.OcResp, error) {
 
 type Server struct {
 	Cred    *cred.Cred
+	BtcConf *util.BitcoindConf
 	Addr    string
 	Conf    *conf.Conf
 	Handler Handler
@@ -221,7 +146,15 @@ func (s *Server) Serve(listener net.Listener) error {
 		// - check service available
 		// - check method available
 
-		if ok, status := s.isAllowedByPolicy(req); !ok {
+		p, err := peer.NewPeerFromReq(req, s.BtcConf)
+		if err != nil {
+			// msg.NewRespError(msg.SERVER_ERROR).Write(conn)
+			return
+		}
+
+		// err = s.storePeerID(p)
+
+		if ok, status := s.isAllowedByPolicy(p, req); !ok {
 			if status == msg.OK {
 				panic("expected error status")
 			}
@@ -242,7 +175,7 @@ func (s *Server) Serve(listener net.Listener) error {
 	return nil
 }
 
-func (s *Server) isAllowedByPolicy(req *msg.OcReq) (bool, msg.OcRespStatus) {
+func (s *Server) isAllowedByPolicy(p *peer.Peer, req *msg.OcReq) (bool, msg.OcRespStatus) {
 	fmt.Printf("is allowed? %v\n", s)
 	// policies := s.Conf.MatchingPolicies(req.Service, req.Method)
 	// for _, policy := range policies {

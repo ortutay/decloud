@@ -27,9 +27,9 @@ var fMinCoins = goopt.String([]string{"--min-coins"}, "calc.calc=.1BTC", "")
 var fMaxWork = goopt.String([]string{"--max-work"}, "calc.calc={\"bytes\": 1000, \"queries\": 100}", "")
 
 // Store service flags
-var fStoreDir = goopt.String([]string{"--store.dir"}, "~/.decloud-store", "")
-var fStoreMaxSpace = goopt.String([]string{"--store.max-space"}, "1GB", "")
-var fStoreGbPricePerMo = goopt.String([]string{"--store.gb-price-per-mo"}, ".001BTC", "")
+var fStoreDir = goopt.String([]string{"--store:dir"}, "~/.decloud-store", "")
+var fStoreMaxSpace = goopt.String([]string{"--store:max-space"}, "1GB", "")
+var fStoreGbPricePerMo = goopt.String([]string{"--store:gb-price-per-mo"}, ".001BTC", "")
 
 func main() {
 	goopt.Parse(nil)
@@ -85,7 +85,12 @@ func main() {
 		Services: services,
 	}
 	s := node.Server{
-		Cred:    &cred.Cred{OcCred: *ocCred, Coins: []cred.BtcCred{}},
+		Cred:    &cred.Cred{
+			OcCred: *ocCred,
+			BtcConf: bConf,
+			Coins: []cred.BtcCred{}
+		},
+		BtcConf: bConf,
 		Conf:    config,
 		Addr:    addr,
 		Handler: &mux,

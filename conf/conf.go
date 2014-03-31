@@ -18,8 +18,8 @@ const (
 	// TODO(ortutay): additional policy commands
 
 	// "store" service commands
-	STORE_DIR = "store-dir"
-	STORE_MAX_SPACE = "store-max-space"
+	STORE_DIR             = "store-dir"
+	STORE_MAX_SPACE       = "store-max-space"
 	STORE_GB_PRICE_PER_MO = "store-gb-price-per-mo"
 )
 
@@ -40,7 +40,7 @@ type Conf struct {
 
 	// TODO(ortutay): do not rely on address re-use. probably, this should just
 	// be another "Policy"
-	BtcAddr  BtcAddr
+	BtcAddr BtcAddr
 }
 
 func (c *Conf) AddPolicy(policy *Policy) {

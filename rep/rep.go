@@ -1,28 +1,30 @@
 package rep
 
 import (
+	"bytes"
+	"database/sql"
 	"encoding/gob"
 	"encoding/hex"
-	"bytes"
-	"strings"
+	"fmt"
 	"log"
 	"os"
-	"fmt"
-	"database/sql"
+	"strings"
+
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/util"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 type Status string
+
 func (s Status) String() string {
 	return string(s)
 }
 
 const (
 	PENDING Status = "pending"
-	SUCCESS = "success"
-	FAILURE = "failure"
+	SUCCESS        = "success"
+	FAILURE        = "failure"
 	// TODO(ortutay): additional statuses
 )
 
@@ -92,10 +94,10 @@ func SuccessRate(sel *Record) (float64, error) {
 	reducer := func(rec *Record) {
 		c := counter
 		if rec.Status == SUCCESS || rec.Status == FAILURE {
-			c["total"]++;
+			c["total"]++
 		}
 		if rec.Status == SUCCESS {
-			c["success"]++;
+			c["success"]++
 		}
 	}
 	err := Reduce(sel, reducer)
@@ -105,7 +107,7 @@ func SuccessRate(sel *Record) (float64, error) {
 	if (counter["success"]) == 0 {
 		return -1, nil
 	}
-	return counter["success"]/counter["total"], nil
+	return counter["success"] / counter["total"], nil
 }
 
 func Reduce(sel *Record, reduceFn func(rec *Record)) error {
@@ -145,7 +147,7 @@ func Reduce(sel *Record, reduceFn func(rec *Record)) error {
 		}
 		if len(pvCurr) != 0 {
 			pv := msg.PaymentValue{
-				Amount: pvAmt,
+				Amount:   pvAmt,
 				Currency: msg.Currency(pvCurr),
 			}
 			rec.PaymentValue = &pv
@@ -210,7 +212,7 @@ func recordToSqlInsert(rec *Record) string {
 	}
 	return fmt.Sprintf(`
 INSERT INTO rep(service, method, timestamp, ocID, status, paymentType, paymentValueAmount, paymentValueCurrency, perf)
-VALUES ("%s", "%s", "%d", "%s", "%s", "%s", "%d", "%s", x'%s');`, 
+VALUES ("%s", "%s", "%d", "%s", "%s", "%s", "%d", "%s", x'%s');`,
 		qesc(rec.Service), qesc(rec.Method), rec.Timestamp, rec.OcID.String(),
 		rec.Status.String(), rec.PaymentType.String(), pvAmt, pvCurr, perfHex)
 }

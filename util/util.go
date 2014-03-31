@@ -1,10 +1,10 @@
 package util
 
 import (
-	"math/big"
 	"bufio"
 	"errors"
 	"fmt"
+	"math/big"
 	"os"
 	"os/user"
 	"path"
@@ -189,13 +189,13 @@ func ByteSizeParseString(str string) (ByteSize, error) {
 	unit := strings.ToUpper(m[2])
 	switch unit {
 	case "KB":
-		return ByteSize(f*KB.Float64()), nil
+		return ByteSize(f * KB.Float64()), nil
 	case "MB":
-		return ByteSize(f*MB.Float64()), nil
+		return ByteSize(f * MB.Float64()), nil
 	case "GB":
-		return ByteSize(f*GB.Float64()), nil
+		return ByteSize(f * GB.Float64()), nil
 	case "TB":
-		return ByteSize(f*TB.Float64()), nil
+		return ByteSize(f * TB.Float64()), nil
 	}
 	return 0, fmt.Errorf("could not parse: %v", str)
 }

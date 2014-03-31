@@ -13,6 +13,12 @@ import (
 
 var _ = fmt.Printf
 
+type BtcAddr string
+
+func (ba *BtcAddr) String() string {
+	return string(*ba)
+}
+
 type BtcTxid string
 
 func (bt *BtcTxid) String() string {
@@ -211,11 +217,12 @@ const (
 	REFRESH_NONCE        = REQUEST_DECLINED + "/refresh-nonce"
 	CURRENCY_UNSUPPORTED = REQUEST_DECLINED + "/currency-unsupported"
 	PAYMENT_REQUIRED     = REQUEST_DECLINED + "/payment-required"
-	PAYMENT_DECLINED     = REQUEST_DECLINED + "/payment-declined"
-	INVALID_TXN          = PAYMENT_DECLINED + "/invalid-transaction"
-	INVALID_TXID         = PAYMENT_DECLINED + "/invalid-txid"
-	TOO_LOW              = PAYMENT_DECLINED + "/too-low"
-	NO_DEFER             = PAYMENT_DECLINED + "/no-defer"
+
+	PAYMENT_DECLINED = REQUEST_DECLINED + "/payment"
+	INVALID_TXN      = PAYMENT_DECLINED + "/invalid-transaction"
+	INVALID_TXID     = PAYMENT_DECLINED + "/invalid-txid"
+	TOO_LOW          = PAYMENT_DECLINED + "/too-low"
+	NO_DEFER         = PAYMENT_DECLINED + "/no-defer"
 )
 
 type OcResp struct {
