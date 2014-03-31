@@ -23,3 +23,13 @@ func TestParseByteSize(t *testing.T) {
 		t.Fatalf("%v", s.Int())
 	}
 }
+
+func TestLoadBitcoindConf(t *testing.T) {
+	conf, err := LoadBitcoindConf("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if conf.User == "" || conf.Password == "" || conf.Server == "" {
+		t.Fatalf("incomplete conf loaded: %v", conf)
+	}
+}

@@ -29,7 +29,17 @@ func LoadBitcoindConf(filename string) (*BitcoindConf, error) {
 		if err != nil {
 			return nil, err
 		}
-		filename = fmt.Sprintf("%s/.bitcoin/bitcoin.conf", usr.HomeDir)
+		candidates := []string{
+			fmt.Sprintf("%s/.bitcoin/bitcoin.conf", usr.HomeDir),
+			fmt.Sprintf("%s/Library/Application Support/Bitcoin/bitcoin.conf", usr.HomeDir),
+			// TOOD(ortutay): Windows
+		}
+		for _, c := range candidates {
+			if _, err := os.Stat(c); err == nil {
+				filename = c
+				break
+			}
+		}
 	}
 	file, err := os.Open(filename)
 	defer file.Close()
