@@ -2,6 +2,7 @@ package peer
 
 import (
 	"fmt"
+
 	"code.google.com/p/leveldb-go/leveldb/db"
 	"code.google.com/p/leveldb-go/leveldb/table"
 	"github.com/ortutay/decloud/cred"

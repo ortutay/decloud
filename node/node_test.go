@@ -19,7 +19,7 @@ var _ = fmt.Printf
 func newClient(btcConf *util.BitcoindConf) (*Client, error) {
 	c := Client{
 		BtcConf: btcConf,
-		Cred: cred.Cred{OcCred: *cred.NewOcCred()},
+		Cred:    cred.Cred{OcCred: *cred.NewOcCred()},
 	}
 	return &c, nil
 }

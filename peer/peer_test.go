@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"code.google.com/p/leveldb-go/leveldb/db"
-	"github.com/ortutay/decloud/msg"
-	"github.com/ortutay/decloud/util"
 	"github.com/ortutay/decloud/cred"
+	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/services/calc"
+	"github.com/ortutay/decloud/util"
 )
 
 func initDir(t *testing.T) string {
@@ -65,7 +65,7 @@ func TestPeerFromReq(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, bc := range *btcCreds  {
+	for _, bc := range *btcCreds {
 		err = bc.SignOcReq(req, btcConf)
 		if err != nil {
 			t.Fatal(err)
@@ -109,7 +109,7 @@ func TestPeerFromReqCoinReuse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, bc := range *btcCreds  {
+	for _, bc := range *btcCreds {
 		err = bc.SignOcReq(req1, btcConf)
 		err = bc.SignOcReq(req2, btcConf)
 		if err != nil {
