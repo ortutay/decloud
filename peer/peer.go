@@ -2,12 +2,12 @@ package peer
 
 import (
 	"fmt"
+	"log"
 
-	"code.google.com/p/leveldb-go/leveldb/db"
-	"code.google.com/p/leveldb-go/leveldb/table"
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/util"
+	"github.com/peterbourgon/diskv"
 )
 
 type Peer struct {
@@ -31,6 +31,7 @@ func (pe PeerError) Error() string {
 func NewPeerFromReq(req *msg.OcReq, btcConf *util.BitcoindConf) (*Peer, error) {
 	ok, err := cred.VerifyOcReqSig(req, btcConf)
 	if err != nil {
+		fmt.Printf("error while verifying sig: %v\n", err)
 		return nil, UNEXPECTED
 	}
 	if !ok {
@@ -39,14 +40,17 @@ func NewPeerFromReq(req *msg.OcReq, btcConf *util.BitcoindConf) (*Peer, error) {
 	coins := make([]msg.BtcAddr, 0)
 	for _, coin := range req.Coins {
 		ocID, err := ocIDForCoin(coin)
-		if err != nil && err != db.ErrNotFound {
+		if err != nil {
+			fmt.Printf("error while generating ocID for coin: %v\n", err)
 			return nil, UNEXPECTED
 		}
+		fmt.Printf("got oc ID for coin: %v\n", ocID)
 		if ocID != nil && *ocID != req.ID {
 			return nil, COIN_REUSE
 		}
 		err = setOcIDForCoin(coin, &req.ID)
 		if err != nil {
+			fmt.Printf("error while storing ocID for coin: %v\n", err)
 			return nil, UNEXPECTED
 		}
 		coins = append(coins, msg.BtcAddr(coin))
@@ -58,59 +62,39 @@ func (p *Peer) BtcBalance(minConf int) (int64, error) {
 	return 0, nil
 }
 
-func levelDBPath() string {
-	return util.AppDir() + "/peer-leveldb.db"
+func peerDBPath() string {
+	return util.AppDir() + "/peer-diskv.db"
 }
 
-var DBFS = db.DefaultFileSystem
-
-func getOrCreateDB() (db.File, error) {
-	_, err := DBFS.Stat(levelDBPath())
-	if err == nil {
-		conn, err := DBFS.Open(levelDBPath())
-		if err != nil {
-			return nil, err
-		} else {
-			return conn, nil
-		}
-	} else {
-		conn, err := DBFS.Create(levelDBPath())
-		if err != nil {
-			return nil, err
-		} else {
-			return conn, nil
-		}
+func getOrCreateDB() *diskv.Diskv {
+	flatTransform := func(s string) []string { return []string{} }
+	d := diskv.New(diskv.Options{
+		BasePath: peerDBPath(),
+		Transform: flatTransform,
+		CacheSizeMax: 1024 * 1024,
+	})
+	if d == nil {
+		log.Fatal("Couldn't open DB at %v", peerDBPath())
 	}
+	return d
 }
 
 func ocIDForCoin(coin string) (*msg.OcID, error) {
-	_, err := DBFS.Stat(levelDBPath())
-	if err != nil {
-		return nil, db.ErrNotFound
-	}
-
-	conn, err := getOrCreateDB()
-	if err != nil {
-		return nil, err
-	}
-	r := table.NewReader(conn, nil)
-	defer r.Close()
-	v, err := r.Get([]byte(coin), nil)
-	if err != nil {
-		return nil, err
+	fmt.Printf("get oc ID for coin: %v\n", coin)
+	d := getOrCreateDB()
+	v, _ := d.Read(coin)
+	if v == nil || len(v) == 0 {
+		return nil, nil
 	}
 	id := msg.OcID(v)
 	return &id, nil
 }
 
 func setOcIDForCoin(coin string, ocID *msg.OcID) error {
-	conn, err := getOrCreateDB()
-	if err != nil {
-		return err
-	}
-	w := table.NewWriter(conn, nil)
-	defer w.Close()
-	fmt.Printf("%v %v\n", coin, ocID)
-	err = w.Set([]byte(coin), []byte(*ocID), nil)
-	return err
+	fmt.Printf("set oc ID for coin %v\n", coin)
+	d := getOrCreateDB()
+	err := d.Write(coin, []byte(ocID.String()))
+	util.Ferr(err)
+
+	return nil
 }

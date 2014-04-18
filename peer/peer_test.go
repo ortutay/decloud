@@ -1,11 +1,11 @@
 package peer
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
 
-	"code.google.com/p/leveldb-go/leveldb/db"
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/services/calc"
@@ -23,9 +23,12 @@ func initDir(t *testing.T) string {
 
 func TestGetNotFound(t *testing.T) {
 	defer os.RemoveAll(initDir(t))
-	_, err := ocIDForCoin("1abc")
-	if err == nil || err != db.ErrNotFound {
-		t.Fatalf("err: %v", err)
+	v, err := ocIDForCoin("1abc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v != nil {
+		t.FailNow()
 	}
 }
 
@@ -40,6 +43,7 @@ func TestGetAndSet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
+	fmt.Printf("id2: %v\n", id2)
 	if id != *id2 {
 		t.Fatalf("%v %v", id, id2)
 	}
@@ -47,10 +51,7 @@ func TestGetAndSet(t *testing.T) {
 
 func TestPeerFromReq(t *testing.T) {
 	defer os.RemoveAll(initDir(t))
-	ocCred, err := cred.NewOcCred()
-	if err != nil {
-		t.Fatal(err)
-	}
+	ocCred := cred.NewOcCred()
 	btcConf, err := util.LoadBitcoindConf("")
 	if err != nil {
 		t.Fatal(err)
@@ -82,14 +83,8 @@ func TestPeerFromReq(t *testing.T) {
 
 func TestPeerFromReqCoinReuse(t *testing.T) {
 	defer os.RemoveAll(initDir(t))
-	ocCred1, err := cred.NewOcCred()
-	if err != nil {
-		t.Fatal(err)
-	}
-	ocCred2, err := cred.NewOcCred()
-	if err != nil {
-		t.Fatal(err)
-	}
+	ocCred1 := cred.NewOcCred()
+	ocCred2 := cred.NewOcCred()
 	btcConf, err := util.LoadBitcoindConf("")
 	if err != nil {
 		t.Fatal(err)
