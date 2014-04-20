@@ -9,20 +9,11 @@ import (
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/services/calc"
-	"github.com/ortutay/decloud/util"
+	"github.com/ortutay/decloud/testutil"
 )
 
-func initDir(t *testing.T) string {
-	dir, err := ioutil.TempDir("", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	util.SetAppDir(dir)
-	return dir
-}
-
 func TestGetNotFound(t *testing.T) {
-	defer os.RemoveAll(initDir(t))
+	defer os.RemoveAll(testutil.InitDir(t))
 	v, err := ocIDForCoin("1abc")
 	if err != nil {
 		t.Fatal(err)
@@ -33,7 +24,7 @@ func TestGetNotFound(t *testing.T) {
 }
 
 func TestGetAndSet(t *testing.T) {
-	defer os.RemoveAll(initDir(t))
+	defer os.RemoveAll(testutil.InitDir(t))
 	id := msg.OcID("1abc")
 	err := setOcIDForCoin("1abc", &id)
 	if err != nil {
@@ -50,7 +41,7 @@ func TestGetAndSet(t *testing.T) {
 }
 
 func TestPeerFromReq(t *testing.T) {
-	defer os.RemoveAll(initDir(t))
+	defer os.RemoveAll(testutil.InitDir(t))
 	ocCred := cred.NewOcCred()
 	btcConf, err := util.LoadBitcoindConf("")
 	if err != nil {
@@ -82,7 +73,7 @@ func TestPeerFromReq(t *testing.T) {
 }
 
 func TestPeerFromReqCoinReuse(t *testing.T) {
-	defer os.RemoveAll(initDir(t))
+	defer os.RemoveAll(testutil.InitDir(t))
 	ocCred1 := cred.NewOcCred()
 	ocCred2 := cred.NewOcCred()
 	btcConf, err := util.LoadBitcoindConf("")
