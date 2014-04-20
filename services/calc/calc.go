@@ -232,6 +232,7 @@ func (cs CalcService) calculate(req *msg.OcReq) (*msg.OcResp, error) {
 			Service: SERVICE_NAME,
 			Method: CALCULATE_METHOD,
 			Timestamp: int(time.Now().Unix()),
+			ID: req.ID,
 			Status: repStatus,
 			PaymentType: msg.DEFER,
 			PaymentValue: pv,

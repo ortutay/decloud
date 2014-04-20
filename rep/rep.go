@@ -146,8 +146,9 @@ func Reduce(sel *Record, reduceFn func(rec *Record)) error {
 		return fmt.Errorf("error while querying %v: %v", query, err.Error())
 	}
 	for rows.Next() {
-		var role, service, method, ocID, status, pvType, pvCurr, timestamp, perfHex []byte
+		var role, service, method, ocID, status, pvType, pvCurr, perfHex []byte
 		var pvAmt int64
+		var timestamp int
 		err := rows.Scan(
 			&role, &service, &method, &timestamp, &ocID, &status, &pvType, &pvAmt,
 			&pvCurr, &perfHex)
@@ -162,6 +163,7 @@ func Reduce(sel *Record, reduceFn func(rec *Record)) error {
 		if len(method) != 0 {
 			rec.Method = string(method)
 		}
+		rec.Timestamp = timestamp
 		if len(ocID) != 0 {
 			rec.ID = msg.OcID(ocID)
 		}
