@@ -61,8 +61,32 @@ func NewPeerFromReq(req *msg.OcReq, btcConf *util.BitcoindConf) (*Peer, error) {
 	return &Peer{ID: req.ID, Coins: coins}, nil
 }
 
-func (p *Peer) BtcBalance(minConf int) (int64, error) {
-	return 0, nil
+func (p *Peer) AmountPaid(minConf int, btcConf *util.BitcoindConf) (int64, error) {
+	cmd, err := btcjson.NewListReceivedByAddressCmd("", minConf, false)
+	if err != nil {
+		return 0, fmt.Errorf("error while making cmd: %v", err.Error())
+	}
+	resp, err := util.SendBtcRpc(cmd, btcConf)
+	ser, ok := resp.Result.([]interface{})
+	if !ok {
+		return 0, fmt.Errorf("error during bitcoind JSON-RPC: %v", resp)
+	}
+	addrs := p.readPaymentAddrs()
+	addrsMap := make(map[string]bool)
+	for _, addr := range addrs {
+		addrsMap[addr] = true
+	}
+	amt := int64(0)
+	for _, r := range ser {
+		result := r.(map[string]interface{})
+		if addrsMap[result["address"].(string)] {
+			satoshis := util.B2S(result["amount"].(float64))
+			fmt.Printf("addr: %v -> %v\n", result["address"], satoshis)
+			amt += satoshis
+		}
+	}
+	fmt.Printf("my addrs: %v\n", addrs)
+	return amt, nil
 }
 
 func (p *Peer) fetchNewBtcAddr(btcConf *util.BitcoindConf) (string, error) {
@@ -80,6 +104,21 @@ func (p *Peer) fetchNewBtcAddr(btcConf *util.BitcoindConf) (string, error) {
 
 func addrDBPath() string {
 	return util.AppDir() + "/peer-addrs-diskv.db"
+}
+
+func (p *Peer) readPaymentAddrs() ([]string) {
+	d := util.GetOrCreateDB(addrDBPath())
+	addrsSer, _ := d.Read(p.ID.String())
+	if addrsSer == nil || len(addrsSer) == 0 {
+		return []string{}
+	} else {
+		var addrs []string
+		err := json.Unmarshal(addrsSer, &addrs)
+		if err != nil {
+			return []string{}
+		}
+		return addrs
+	}
 }
 
 func (p *Peer) PaymentAddr(maxToMake int, btcConf *util.BitcoindConf) (string, error) {

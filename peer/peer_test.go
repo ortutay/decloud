@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/conformal/btcjson"
+
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/services/calc"
@@ -136,5 +138,57 @@ func TestGetAddr(t *testing.T) {
 	}
 	if addr1 != addr2 {
 		t.Fatalf("%v != %v\n", addr1, addr2)
+	}
+}
+
+func TestAmountPaid(t *testing.T) {
+	defer os.RemoveAll(testutil.InitDir(t))
+	btcConf, err := util.LoadBitcoindConf("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	peer := Peer{ID: msg.OcID("123id")}
+	otherPeer := Peer{ID: msg.OcID("456otherid")}
+
+	addr, err := peer.PaymentAddr(1, btcConf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherAddr, err := otherPeer.PaymentAddr(1, btcConf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("addr %v other addr %v\n", addr, otherAddr)
+
+	// Send some BTC to ourselves.
+	amt := int64(1e6)
+	cmd, err := btcjson.NewSendToAddressCmd("", addr, amt)
+	if err != nil {
+		log.Fatal(err)
+	}
+	sendBtcResp, err := util.SendBtcRpc(cmd, btcConf)
+	_, ok := sendBtcResp.Result.(string)
+	if !ok {
+		log.Fatal(sendBtcResp)
+	}
+
+	// Send some BTC to another address.
+	cmd, err = btcjson.NewSendToAddressCmd("", otherAddr, 1e6)
+	if err != nil {
+		log.Fatal(err)
+	}
+	sendBtcResp, err = util.SendBtcRpc(cmd, btcConf)
+	_, ok = sendBtcResp.Result.(string)
+	if !ok {
+		log.Fatal(sendBtcResp)
+	}
+
+	// Verify balance
+	paid, err := peer.AmountPaid(0, btcConf)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if paid != amt {
+		t.Fatalf("%v != %v", paid, amt)
 	}
 }
