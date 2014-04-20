@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math/big"
 	"regexp"
-	"strconv"
+
+	"github.com/ortutay/decloud/util"
 )
 
 var _ = fmt.Printf
@@ -102,22 +102,23 @@ func NewPaymentValue(str string) (*PaymentValue, error) {
 }
 
 func NewPaymentValueParseString(str string) (*PaymentValue, error) {
-	re := regexp.MustCompile("(?i)([0-9.]+) *(btc)")
+	re := regexp.MustCompile("(?i)(-?[0-9.]+) *(btc)")
 	m := re.FindStringSubmatch(str)
 	if len(m) != 3 {
 		return nil, fmt.Errorf("could not parse: %v", str)
 	}
-	r := new(big.Rat)
-	_, err := fmt.Sscan(m[1], r)
-	if err != nil {
-		return nil, fmt.Errorf("could not parse: %v", m[1])
-	}
-	r.Mul(r, big.NewRat(1e8, 1))
-	if !r.IsInt() {
-		return nil, fmt.Errorf("max precision is 8 decimal places (%v)", m[1])
-	}
-	intStr := r.RatString()
-	satoshis, err := strconv.ParseInt(intStr, 10, 64)
+	// r := new(big.Rat)
+	// _, err := fmt.Sscan(m[1], r)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("could not parse: %v", m[1])
+	// }
+	// r.Mul(r, big.NewRat(1e8, 1))
+	// if !r.IsInt() {
+	// 	return nil, fmt.Errorf("max precision is 8 decimal places (%v)", m[1])
+	// }
+	// intStr := r.RatString()
+	// satoshis, err := strconv.ParseInt(intStr, 10, 64)
+	satoshis, err := util.StringB2S(m[1])
 	if err != nil {
 		// unexpected, r.RatString() should always return valid integer string
 		panic(err)

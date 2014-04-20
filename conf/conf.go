@@ -14,6 +14,7 @@ const (
 	MIN_FEE             = "min-fee"
 	MIN_COINS           = "min-coins"
 	MAX_WORK            = "max-work"
+	MAX_BALANCE         = "max-balance"
 	// TODO(ortutay): add rate-limit
 	// TODO(ortutay): additional policy commands
 
@@ -53,6 +54,20 @@ func (c *Conf) AddPolicy(policy *Policy) {
 // 	}
 // 	c.Settings[name] = value
 // }
+
+func (c *Conf) PolicyForCmd(cmd PolicyCmd) (*Policy, error) {
+	var p *Policy
+	for i, policy := range c.Policies {
+		if policy.Cmd == cmd {
+			if p != nil {
+				return nil, fmt.Errorf("Multiple matches for %v", cmd)
+			} else {
+				p = &c.Policies[i]
+			}
+		}
+	}
+	return p, nil
+}
 
 func (c *Conf) MatchingPolicies(service string, method string) []*Policy {
 	fmt.Printf("compare %v %v to policies: %v\n", service, method, c.Policies)

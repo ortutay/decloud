@@ -19,11 +19,11 @@ import (
 // General flags
 var fPort = goopt.Int([]string{"-p", "--port"}, 9443, "")
 var fAppDir = goopt.String([]string{"--app-dir"}, "~/.decloud", "")
-
 // var fTestNet = goopt.Flag([]string{"-t", "--test-net"}, []string{"--main-net"}, "Use testnet", "Use mainnet")
+var fMaxBalance = goopt.String([]string{"--max-balance"}, ".1BTC", "")
 
 // Cross-service flags
-var fMinFee = goopt.String([]string{"--min-fee"}, "calc.calc=.01BTC", "")
+var fMinFee = goopt.String([]string{"--min-fee"}, "calc.calc=.01BTC", "") // TODO(ortutay) unused? remove?
 var fMinCoins = goopt.String([]string{"--min-coins"}, "calc.calc=.1BTC", "")
 var fMaxWork = goopt.String([]string{"--max-work"}, "calc.calc={\"bytes\": 1000, \"queries\": 100}", "")
 
@@ -45,6 +45,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+
+	config.AddPolicy(&conf.Policy{
+		Selector: conf.PolicySelector{},
+		Cmd:      conf.MAX_BALANCE,
+		Args:     []interface{}{getPaymentValue("", *fMaxBalance)},
+	})
+
 	// TODO(ortutay): s/"store"/store.SERVICE_NAME/
 	config.AddPolicy(&conf.Policy{
 		Selector: conf.PolicySelector{Service: "store"},

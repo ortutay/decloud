@@ -227,7 +227,6 @@ func StringB2S(btc string) (int64, error) {
 	if !ok {
 		return 0, fmt.Errorf("could not parse: %v", btc)
 	}
-	fmt.Printf("r: %v %v\n", r.FloatString(10), btc)
 	r.Mul(r, big.NewRat(1e8, 1))
 	if !r.IsInt() {
 		return 0, fmt.Errorf("more than 8 decimals: %v", btc)
@@ -253,3 +252,4 @@ func GetOrCreateDB(path string) *diskv.Diskv {
 	}
 	return d
 }
+

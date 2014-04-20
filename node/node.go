@@ -14,7 +14,6 @@ import (
 )
 
 const SERVER_PAYMENT_MIN_CONF = 0
-const SERVER_MAX_BALANCE = 1e6 // 1 BTC
 
 type Client struct {
 	BtcConf *util.BitcoindConf
@@ -163,13 +162,20 @@ func (s *Server) Serve(listener net.Listener) error {
 		if (balance.Currency != msg.BTC) {
 			panic("TODO: support other currencies")
 		}
-		if balance.Amount > SERVER_MAX_BALANCE {
+		maxBalance, err := s.Conf.PolicyForCmd(conf.MAX_BALANCE)
+		if err != nil {
+			// TODO(ortutay): handle more configuration around max balance
+			panic(err)
+		}
+		maxAllowed := maxBalance.Args[0].(*msg.PaymentValue).Amount
+		fmt.Printf("max balance: %v\n", maxBalance.Args[0])
+		if balance.Amount > maxAllowed {
 			addr, err := p.PaymentAddr(-1, s.BtcConf)
 			if err != nil {
 				msg.NewRespError(msg.SERVER_ERROR).Write(conn)
 			}
 			body := fmt.Sprintf("Balance due. Please pay %v %v to %v\n",
-				util.S2B(balance.Amount - SERVER_MAX_BALANCE),
+				util.S2B(balance.Amount - maxAllowed),
 				balance.Currency.String(),
 				addr)
 			msg.NewRespErrorWithBody(msg.PLEASE_PAY, []byte(body)).Write(conn)
