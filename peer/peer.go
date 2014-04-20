@@ -9,9 +9,12 @@ import (
 	"github.com/conformal/btcjson"
 
 	"github.com/ortutay/decloud/cred"
+	"github.com/ortutay/decloud/rep"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/util"
 )
+
+const DEFAULT_MAX_TO_MAKE = 10
 
 type Peer struct {
 	ID    msg.OcID
@@ -61,15 +64,15 @@ func NewPeerFromReq(req *msg.OcReq, btcConf *util.BitcoindConf) (*Peer, error) {
 	return &Peer{ID: req.ID, Coins: coins}, nil
 }
 
-func (p *Peer) AmountPaid(minConf int, btcConf *util.BitcoindConf) (int64, error) {
+func (p *Peer) AmountPaid(minConf int, btcConf *util.BitcoindConf) (*msg.PaymentValue, error) {
 	cmd, err := btcjson.NewListReceivedByAddressCmd("", minConf, false)
 	if err != nil {
-		return 0, fmt.Errorf("error while making cmd: %v", err.Error())
+		return nil, fmt.Errorf("error while making cmd: %v", err.Error())
 	}
 	resp, err := util.SendBtcRpc(cmd, btcConf)
 	ser, ok := resp.Result.([]interface{})
 	if !ok {
-		return 0, fmt.Errorf("error during bitcoind JSON-RPC: %v", resp)
+		return nil, fmt.Errorf("error during bitcoind JSON-RPC: %v", resp)
 	}
 	addrs := p.readPaymentAddrs()
 	addrsMap := make(map[string]bool)
@@ -86,7 +89,31 @@ func (p *Peer) AmountPaid(minConf int, btcConf *util.BitcoindConf) (int64, error
 		}
 	}
 	fmt.Printf("my addrs: %v\n", addrs)
-	return amt, nil
+	return &msg.PaymentValue{Amount: amt, Currency: msg.BTC}, nil
+}
+
+func (p *Peer) AmountConsumed() (*msg.PaymentValue, error) {
+	return rep.PaymentValueServedToOcID(p.ID)
+}
+
+
+func (p *Peer) Balance(minConf int, btcConf *util.BitcoindConf) (*msg.PaymentValue, error) {
+	paidPv, err := p.AmountPaid(minConf, btcConf)
+	if err != nil {
+		return nil, err
+	}
+	consumedPv, err := p.AmountConsumed()
+	if err != nil {
+		return nil, err
+	}
+	if paidPv.Currency != msg.BTC || consumedPv.Currency != msg.BTC {
+		panic("TODO: support other currencies")
+	}
+	pv := msg.PaymentValue{
+		Amount: consumedPv.Amount - paidPv.Amount,
+		Currency: msg.BTC,
+	}
+	return &pv, nil
 }
 
 func (p *Peer) fetchNewBtcAddr(btcConf *util.BitcoindConf) (string, error) {
@@ -122,6 +149,11 @@ func (p *Peer) readPaymentAddrs() ([]string) {
 }
 
 func (p *Peer) PaymentAddr(maxToMake int, btcConf *util.BitcoindConf) (string, error) {
+	if maxToMake == -1 {
+		// TODO(ortutay): This is a parameter for testing. See if there is a better
+		// solution.
+		maxToMake = DEFAULT_MAX_TO_MAKE
+	}
 	d := util.GetOrCreateDB(addrDBPath())
 	addrsSer, _ := d.Read(p.ID.String())
 	fmt.Printf("read addrs: %v\n", addrsSer)

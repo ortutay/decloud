@@ -218,6 +218,7 @@ const (
 	REFRESH_NONCE        = REQUEST_DECLINED + "/refresh-nonce"
 	CURRENCY_UNSUPPORTED = REQUEST_DECLINED + "/currency-unsupported"
 	PAYMENT_REQUIRED     = REQUEST_DECLINED + "/payment-required"
+	PLEASE_PAY     = REQUEST_DECLINED + "/please-pay"
 
 	PAYMENT_DECLINED = REQUEST_DECLINED + "/payment"
 	INVALID_TXN      = PAYMENT_DECLINED + "/invalid-transaction"
@@ -263,6 +264,23 @@ func NewRespError(status OcRespStatus) *OcResp {
 		CoinSigs: []string{},
 		Nonce:    "", // TODO(ortutay)
 		Status:   status,
+	}
+	return &resp
+}
+
+func NewRespErrorWithBody(status OcRespStatus, body []byte) *OcResp {
+	if status == OK {
+		panic("got status OK, but expected an error status")
+	}
+	resp := OcResp{
+		ID:       "",
+		Sig:      "",
+		Coins:    []string{},
+		CoinSigs: []string{},
+		Nonce:    "", // TODO(ortutay)
+		Status:   status,
+		ContentLength: len(body),
+		Body:          body,
 	}
 	return &resp
 }

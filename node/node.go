@@ -10,9 +10,11 @@ import (
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/peer"
-	"github.com/ortutay/decloud/rep"
 	"github.com/ortutay/decloud/util"
 )
+
+const SERVER_PAYMENT_MIN_CONF = 0
+const SERVER_MAX_BALANCE = 1e6 // 1 BTC
 
 type Client struct {
 	BtcConf *util.BitcoindConf
@@ -149,14 +151,29 @@ func (s *Server) Serve(listener net.Listener) error {
 
 		p, err := peer.NewPeerFromReq(req, s.BtcConf)
 		if err != nil {
-			fmt.Printf("error generating peer, %v\n", err)
-			// msg.NewRespError(msg.SERVER_ERROR).Write(conn)
-			return
+			msg.NewRespError(msg.SERVER_ERROR).Write(conn)
 		}
 
-		fmt.Printf("req from peer: %v\n", p)
-
-		// err = s.storePeerID(p)
+		// TODO(ortutay): more configuration options around allowed balance
+		balance, err := p.Balance(SERVER_PAYMENT_MIN_CONF, s.BtcConf)
+		if err != nil {
+			msg.NewRespError(msg.SERVER_ERROR).Write(conn)
+		}
+		fmt.Printf("balance: %v\n", balance)
+		if (balance.Currency != msg.BTC) {
+			panic("TODO: support other currencies")
+		}
+		if balance.Amount > SERVER_MAX_BALANCE {
+			addr, err := p.PaymentAddr(-1, s.BtcConf)
+			if err != nil {
+				msg.NewRespError(msg.SERVER_ERROR).Write(conn)
+			}
+			body := fmt.Sprintf("Balance due. Please pay %v %v to %v\n",
+				util.S2B(balance.Amount - SERVER_MAX_BALANCE),
+				balance.Currency.String(),
+				addr)
+			msg.NewRespErrorWithBody(msg.PLEASE_PAY, []byte(body)).Write(conn)
+		}
 
 		if ok, status := s.isAllowedByPolicy(p, req); !ok {
 			if status == msg.OK {
@@ -184,13 +201,15 @@ func (s *Server) Serve(listener net.Listener) error {
 func (s *Server) isAllowedByPolicy(p *peer.Peer, req *msg.OcReq) (bool, msg.OcRespStatus) {
 	fmt.Printf("is allowed? %v\n", s)
 
-	// TODO: designate ratio in policy
-	paidRate, err := rep.PaidRate(&rep.Record{ID: p.ID})
+	paidPv, err := p.AmountPaid(SERVER_PAYMENT_MIN_CONF, s.BtcConf)
 	if err != nil {
-		fmt.Printf("error: couldn't get paid rate: %v\n", err)
 		return false, msg.SERVER_ERROR
 	}
-	fmt.Printf("paid rate: %v\n", paidRate)
+	consumedPv, err := p.AmountConsumed()
+	if err != nil {
+		return false, msg.SERVER_ERROR
+	}
+	fmt.Printf("paid: %v, consumed: %v\n", paidPv, consumedPv)
 
 	// policies := s.Conf.MatchingPolicies(req.Service, req.Method)
 	// for _, policy := range policies {

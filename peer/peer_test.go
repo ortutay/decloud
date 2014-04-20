@@ -184,11 +184,11 @@ func TestAmountPaid(t *testing.T) {
 	}
 
 	// Verify balance
-	paid, err := peer.AmountPaid(0, btcConf)
+	pv, err := peer.AmountPaid(0, btcConf)
 	if err != nil {
 		log.Fatal(err)
 	}
-	if paid != amt {
+	if pv.Amount != amt {
 		t.Fatalf("%v != %v", paid, amt)
 	}
 }

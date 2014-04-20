@@ -149,6 +149,25 @@ func PaidRate(sel *Record) (float64, error) {
 	return counter["total_paid"] / counter["total_success"], nil
 }
 
+func PaymentValueServedToOcID(id msg.OcID) (*msg.PaymentValue, error) {
+	value := int64(0)
+	reducer := func(rec *Record) {
+		if ((rec.Status == SUCCESS_UNPAID || rec.Status == SUCCESS_PAID) &&
+			rec.PaymentValue != nil){
+			if rec.PaymentValue.Currency != msg.BTC {
+				panic("TODO: support other currency types")
+			}
+			value += rec.PaymentValue.Amount
+		}
+	}
+	sel := Record{Role: SERVER, ID: id}
+	err := Reduce(&sel, reducer)
+	if err != nil {
+		return nil, err
+	}
+	return &msg.PaymentValue{Amount: value, Currency: msg.BTC}, nil
+}
+
 func PrettyPrint(sel *Record) error {
 	Reduce(sel, func(r *Record) {
 		fmt.Printf("%+v\n", *r)
