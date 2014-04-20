@@ -166,7 +166,7 @@ func ReadOcReq(r *bufio.Reader) (*OcReq, error) {
 		return nil, fmt.Errorf("error while reading JSON line: %v", err.Error())
 	}
 	var req OcReq
-	
+
 	err = json.Unmarshal(jsonLine, &req)
 	if err != nil {
 		return nil, fmt.Errorf("error while unmarshalling: %v", err.Error())

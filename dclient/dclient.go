@@ -11,9 +11,9 @@ import (
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/node"
+	"github.com/ortutay/decloud/rep"
 	"github.com/ortutay/decloud/services/calc"
 	"github.com/ortutay/decloud/util"
-	"github.com/ortutay/decloud/rep"
 )
 
 // General flags

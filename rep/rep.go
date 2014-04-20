@@ -1,6 +1,5 @@
 package rep
 
-
 import (
 	"bytes"
 	"database/sql"
@@ -24,10 +23,10 @@ func (s Status) String() string {
 
 const (
 	// Note that status can be used in either server or client context
-	PENDING Status = "pending"
+	PENDING        Status = "pending"
 	SUCCESS_UNPAID        = "success-unpaid"
-	SUCCESS_PAID = "success-paid"
-	FAILURE        = "failure"
+	SUCCESS_PAID          = "success-paid"
+	FAILURE               = "failure"
 )
 
 type Role string
@@ -38,19 +37,19 @@ func (s Role) String() string {
 
 const (
 	SERVER Role = "server"
-	CLIENT = "client"
+	CLIENT      = "client"
 )
 
 type Record struct {
-	Role Role `json:"role"`
-	Service      string `json:"service"`
-	Method       string `json:"method"` // Is "Method the appropriate field?
-	Timestamp    int `json:"timestamp"`
-	ID         msg.OcID `json:"id"`
-	Status       Status `json:"status"`
-	PaymentType  msg.PaymentType `json:"paymentType"`
+	Role         Role              `json:"role"`
+	Service      string            `json:"service"`
+	Method       string            `json:"method"` // Is "Method the appropriate field?
+	Timestamp    int               `json:"timestamp"`
+	ID           msg.OcID          `json:"id"`
+	Status       Status            `json:"status"`
+	PaymentType  msg.PaymentType   `json:"paymentType"`
 	PaymentValue *msg.PaymentValue `json:"paymentValue"`
-	Perf         interface{} `json:"-"` // Service specific
+	Perf         interface{}       `json:"-"` // Service specific
 }
 
 type Cursor interface {
@@ -107,12 +106,12 @@ func SuccessRate(sel *Record) (float64, error) {
 	counter["success"] = float64(0)
 	reducer := func(rec *Record) {
 		c := counter
-		if (rec.Status == SUCCESS_UNPAID ||
+		if rec.Status == SUCCESS_UNPAID ||
 			rec.Status == SUCCESS_PAID ||
-			rec.Status == FAILURE) {
+			rec.Status == FAILURE {
 			c["total"]++
 		}
-		if (rec.Status == SUCCESS_UNPAID || rec.Status == SUCCESS_PAID) {
+		if rec.Status == SUCCESS_UNPAID || rec.Status == SUCCESS_PAID {
 			c["success"]++
 		}
 	}

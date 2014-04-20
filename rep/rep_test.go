@@ -21,7 +21,7 @@ func initDir(t *testing.T) string {
 func TestRepPut(t *testing.T) {
 	defer os.RemoveAll(initDir(t))
 	rec := Record{
-		Role: SERVER,
+		Role:         SERVER,
 		Service:      "store",
 		Method:       "put",
 		Timestamp:    1234,

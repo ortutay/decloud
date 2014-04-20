@@ -1,13 +1,13 @@
 package calc
 
 import (
-	"time"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ortutay/decloud/btc"
 	"github.com/ortutay/decloud/conf"
@@ -228,15 +228,15 @@ func (cs CalcService) calculate(req *msg.OcReq) (*msg.OcResp, error) {
 			repStatus = rep.SUCCESS_PAID
 		}
 		rec := rep.Record{
-			Role: rep.SERVER,
-			Service: SERVICE_NAME,
-			Method: CALCULATE_METHOD,
-			Timestamp: int(time.Now().Unix()),
-			ID: req.ID,
-			Status: repStatus,
-			PaymentType: msg.DEFER,
+			Role:         rep.SERVER,
+			Service:      SERVICE_NAME,
+			Method:       CALCULATE_METHOD,
+			Timestamp:    int(time.Now().Unix()),
+			ID:           req.ID,
+			Status:       repStatus,
+			PaymentType:  msg.DEFER,
 			PaymentValue: pv,
-			Perf: nil,
+			Perf:         nil,
 		}
 		fmt.Printf("rep rec: %v\n", rec)
 		id, err := rep.Put(&rec)

@@ -69,8 +69,8 @@ func peerDBPath() string {
 func getOrCreateDB() *diskv.Diskv {
 	flatTransform := func(s string) []string { return []string{} }
 	d := diskv.New(diskv.Options{
-		BasePath: peerDBPath(),
-		Transform: flatTransform,
+		BasePath:     peerDBPath(),
+		Transform:    flatTransform,
 		CacheSizeMax: 1024 * 1024,
 	})
 	if d == nil {

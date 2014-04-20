@@ -19,6 +19,7 @@ import (
 // General flags
 var fPort = goopt.Int([]string{"-p", "--port"}, 9443, "")
 var fAppDir = goopt.String([]string{"--app-dir"}, "~/.decloud", "")
+
 // var fTestNet = goopt.Flag([]string{"-t", "--test-net"}, []string{"--main-net"}, "Use testnet", "Use mainnet")
 
 // Cross-service flags
@@ -47,18 +48,18 @@ func main() {
 	// TODO(ortutay): s/"store"/store.SERVICE_NAME/
 	config.AddPolicy(&conf.Policy{
 		Selector: conf.PolicySelector{Service: "store"},
-		Cmd: conf.STORE_DIR,
-		Args: []interface{}{*fStoreDir},
+		Cmd:      conf.STORE_DIR,
+		Args:     []interface{}{*fStoreDir},
 	})
 	config.AddPolicy(&conf.Policy{
 		Selector: conf.PolicySelector{Service: "store"},
-		Cmd: conf.STORE_MAX_SPACE,
-		Args: []interface{}{getSpace("", *fStoreMaxSpace)},
+		Cmd:      conf.STORE_MAX_SPACE,
+		Args:     []interface{}{getSpace("", *fStoreMaxSpace)},
 	})
 	config.AddPolicy(&conf.Policy{
 		Selector: conf.PolicySelector{Service: "store"},
-		Cmd: conf.STORE_GB_PRICE_PER_MO,
-		Args: []interface{}{getPaymentValue("", *fStoreGbPricePerMo)},
+		Cmd:      conf.STORE_GB_PRICE_PER_MO,
+		Args:     []interface{}{getPaymentValue("", *fStoreGbPricePerMo)},
 	})
 	fmt.Printf("running with conf: %v\n", config)
 
@@ -85,10 +86,10 @@ func main() {
 		Services: services,
 	}
 	s := node.Server{
-		Cred:    &cred.Cred{
-			OcCred: *ocCred,
+		Cred: &cred.Cred{
+			OcCred:  *ocCred,
 			BtcConf: bConf,
-			Coins: []cred.BtcCred{},
+			Coins:   []cred.BtcCred{},
 		},
 		BtcConf: bConf,
 		Conf:    config,
@@ -149,7 +150,7 @@ func makeConf(minFeeFlag string, minCoinsFlag string, maxWorkFlag string) (*conf
 	return &conf, nil
 }
 
-func getPolicy(arg string, cmd conf.PolicyCmd, parse func(string, string) (interface{})) (*conf.Policy, error) {
+func getPolicy(arg string, cmd conf.PolicyCmd, parse func(string, string) interface{}) (*conf.Policy, error) {
 	s := strings.Split(arg, "=")
 	if len(s) != 2 {
 		return nil, fmt.Errorf("could not parse: %v", arg)
