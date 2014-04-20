@@ -221,6 +221,20 @@ func S2B(satoshis int64) float64 {
 	return float64(satoshis) / 1e8
 }
 
+func StringB2S(btc string) (int64, error) {
+	r := new(big.Rat)
+	_, ok := r.SetString(btc)
+	if !ok {
+		return 0, fmt.Errorf("could not parse: %v", btc)
+	}
+	fmt.Printf("r: %v %v\n", r.FloatString(10), btc)
+	r.Mul(r, big.NewRat(1e8, 1))
+	if !r.IsInt() {
+		return 0, fmt.Errorf("more than 8 decimals: %v", btc)
+	}
+	return r.Num().Int64(), nil
+}
+
 func Ferr(err error) {
 	if err != nil {
 		panic(err)

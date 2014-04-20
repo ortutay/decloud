@@ -33,3 +33,20 @@ func TestLoadBitcoindConf(t *testing.T) {
 		t.Fatalf("incomplete conf loaded: %v", conf)
 	}
 }
+
+func TestStringB2S(t *testing.T) {
+	s, err := StringB2S("2.01")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s != 201000000 {
+		fmt.Printf("%v != %v", s, 201000000)
+	}
+}
+
+func TestStringB2STooManyDecimals(t *testing.T) {
+	_, err := StringB2S("2.0100000000000001")
+	if err == nil {
+		t.Fatalf("expected error on too many decimals")
+	}
+}
