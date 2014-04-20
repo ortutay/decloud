@@ -1,6 +1,7 @@
 package calc
 
 import (
+	"time"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"github.com/ortutay/decloud/btc"
 	"github.com/ortutay/decloud/conf"
 	"github.com/ortutay/decloud/msg"
+	"github.com/ortutay/decloud/rep"
 )
 
 var _ = fmt.Printf
@@ -210,16 +212,37 @@ func (cs CalcService) calculate(req *msg.OcReq) (*msg.OcResp, error) {
 			return msg.NewRespError(msg.TOO_LOW), nil
 		}
 
+		var repStatus rep.Status
 		switch req.PaymentType {
 		case msg.DEFER:
 			// TODO(ortutay): check if we accept deferred payment for the request
-			// return msg.NewRespError(msg.NO_DEFER), nil
+			// TODO(ortutay): marking as success is pre-emptive; need to handle
+			// failure case
+			repStatus = rep.SUCCESS_UNPAID
 		case msg.ATTACHED:
 			if !btc.TxnIsValid(req.PaymentTxn, req.PaymentValue) {
 				return msg.NewRespError(msg.INVALID_TXN), nil
 			}
 			submitTxn = req.PaymentTxn
+			// TODO(ortutay): same note as above about pre-emptive success mark
+			repStatus = rep.SUCCESS_PAID
 		}
+		rec := rep.Record{
+			Role: rep.SERVER,
+			Service: SERVICE_NAME,
+			Method: CALCULATE_METHOD,
+			Timestamp: int(time.Now().Unix()),
+			Status: repStatus,
+			PaymentType: msg.DEFER,
+			PaymentValue: pv,
+			Perf: nil,
+		}
+		fmt.Printf("rep rec: %v\n", rec)
+		id, err := rep.Put(&rec)
+		if err != nil {
+			return nil, fmt.Errorf("local database error: %v", err)
+		}
+		fmt.Printf("stored rep rec, %v %v\n", id, err)
 	}
 
 	var results []string
