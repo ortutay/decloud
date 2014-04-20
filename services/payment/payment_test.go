@@ -3,10 +3,12 @@ package payment
 import (
 	"log"
 	"testing"
+	"os"
 
 	"github.com/conformal/btcjson"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/util"
+	"github.com/ortutay/decloud/testutil"
 )
 
 func TestTxid(t *testing.T) {
@@ -53,5 +55,25 @@ func TestFakeTxidError(t *testing.T) {
 	}
 	if resp.Status != msg.INVALID_TXID {
 		log.Fatalf("expected %v, but got %v\n", msg.INVALID_TXID, resp.Status)
+	}
+}
+
+func TestGetAddr(t *testing.T) {
+	defer os.RemoveAll(testutil.InitDir(t))
+	btcConf, err := util.LoadBitcoindConf("")
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	ps := PaymentService{BitcoindConf: btcConf}
+	addr1, err := ps.addrForOcID(msg.OcID("123id"), 1)
+	if err != nil {
+		log.Fatal(err)
+	}
+	addr2, err := ps.addrForOcID(msg.OcID("123id"), 1)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if addr1 != addr2 {
+		t.Fatalf("%v != %v\n", addr1, addr2)
 	}
 }

@@ -84,7 +84,7 @@ func (ps *PaymentService) getPaymentAddr(req *msg.OcReq) (*msg.OcResp, error) {
 			return msg.NewRespError(msg.SERVER_ERROR), nil
 		}
 		// TODO(ortutay): smarter handling to map request ID to address
-		btcAddr, err := ps.addrForOcID(req.ID)
+		btcAddr, err := ps.addrForOcID(req.ID, ADDRS_PER_ID)
 		if err != nil {
 			return msg.NewRespError(msg.SERVER_ERROR), nil
 		}
@@ -99,14 +99,14 @@ func addrDBPath() string {
 	return util.AppDir() + "/payment-addrs-diskv.db"
 }
 
-func (ps *PaymentService) addrForOcID(id msg.OcID) (string, error) {
+func (ps *PaymentService) addrForOcID(id msg.OcID, maxToMake int) (string, error) {
 	d := util.GetOrCreateDB(addrDBPath())
 	addrsSer, _ := d.Read(id.String())
 	fmt.Printf("read addrs: %v\n", addrsSer)
 	if addrsSer == nil || len(addrsSer) == 0 {
 		fmt.Printf("no addrs read, making...\n")
 		var addrs []string
-		for i := 0; i < ADDRS_PER_ID; i++ {
+		for i := 0; i < maxToMake; i++ {
 			btcAddr, err := ps.fetchNewBtcAddr()
 			if err != nil {
 				log.Printf("error while generating addresses: %v\n", err)
