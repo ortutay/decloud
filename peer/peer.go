@@ -2,6 +2,11 @@ package peer
 
 import (
 	"fmt"
+	"log"
+	"encoding/json"
+	"math/rand"
+
+	"github.com/conformal/btcjson"
 
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
@@ -58,6 +63,60 @@ func NewPeerFromReq(req *msg.OcReq, btcConf *util.BitcoindConf) (*Peer, error) {
 
 func (p *Peer) BtcBalance(minConf int) (int64, error) {
 	return 0, nil
+}
+
+func (p *Peer) fetchNewBtcAddr(btcConf *util.BitcoindConf) (string, error) {
+	cmd, err := btcjson.NewGetNewAddressCmd("")
+	if err != nil {
+		return "", fmt.Errorf("error while making cmd: %v", err.Error())
+	}
+	resp, err := util.SendBtcRpc(cmd, btcConf)
+	addr, ok := resp.Result.(string)
+	if !ok {
+		return "", fmt.Errorf("error during bitcoind JSON-RPC: %v", resp)
+	}
+	return addr, nil
+}
+
+func addrDBPath() string {
+	return util.AppDir() + "/peer-addrs-diskv.db"
+}
+
+func (p *Peer) PaymentAddr(maxToMake int, btcConf *util.BitcoindConf) (string, error) {
+	d := util.GetOrCreateDB(addrDBPath())
+	addrsSer, _ := d.Read(p.ID.String())
+	fmt.Printf("read addrs: %v\n", addrsSer)
+	if addrsSer == nil || len(addrsSer) == 0 {
+		fmt.Printf("no addrs read, making...\n")
+		var addrs []string
+		for i := 0; i < maxToMake; i++ {
+			btcAddr, err := p.fetchNewBtcAddr(btcConf)
+			if err != nil {
+				log.Printf("error while generating addresses: %v\n", err)
+				return "", err
+			}
+			addrs = append(addrs, btcAddr)
+		}
+		ser, err := json.Marshal(addrs)
+		if err != nil {
+			return "", err
+		}
+		err = d.Write(p.ID.String(), ser)
+		if err != nil {
+			return "", err
+		}
+		fmt.Printf("generated addresses: %v ser: %v\n", addrs, string(ser))
+		addrsSer, _ = d.Read(p.ID.String())
+	}
+	var addrs []string
+	err := json.Unmarshal(addrsSer, &addrs)
+	if err != nil {
+		return "", err
+	}
+	if addrs == nil || len(addrs) == 0 {
+		panic("unexpected empty list")
+	}
+	return addrs[rand.Int()%len(addrs)], nil
 }
 
 func peerDBPath() string {

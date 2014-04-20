@@ -2,7 +2,7 @@ package peer
 
 import (
 	"fmt"
-	"io/ioutil"
+	"log"
 	"os"
 	"testing"
 
@@ -10,6 +10,7 @@ import (
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/services/calc"
 	"github.com/ortutay/decloud/testutil"
+	"github.com/ortutay/decloud/util"
 )
 
 func TestGetNotFound(t *testing.T) {
@@ -115,5 +116,25 @@ func TestPeerFromReqCoinReuse(t *testing.T) {
 	}
 	if p2 != nil {
 		t.FailNow()
+	}
+}
+
+func TestGetAddr(t *testing.T) {
+	defer os.RemoveAll(testutil.InitDir(t))
+	btcConf, err := util.LoadBitcoindConf("")
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	p := Peer{ID: msg.OcID("123id")}
+	addr1, err := p.PaymentAddr(1, btcConf)
+	if err != nil {
+		log.Fatal(err)
+	}
+	addr2, err := p.PaymentAddr(1, btcConf)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if addr1 != addr2 {
+		t.Fatalf("%v != %v\n", addr1, addr2)
 	}
 }
