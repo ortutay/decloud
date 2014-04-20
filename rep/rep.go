@@ -29,7 +29,19 @@ const (
 	FAILURE        = "failure"
 )
 
+type Role string
+
+func (s Role) String() string {
+	return string(s)
+}
+
+const (
+	SERVER Role = "server"
+	CLIENT = "client"
+)
+
 type Record struct {
+	Role Role
 	Service      string
 	Method       string // Is "Method" the appropriate field?
 	Timestamp    int
@@ -126,13 +138,16 @@ func Reduce(sel *Record, reduceFn func(rec *Record)) error {
 		return fmt.Errorf("error while querying %v: %v", query, err.Error())
 	}
 	for rows.Next() {
-		var service, method, ocID, status, pvType, pvCurr, timestamp, perfHex []byte
+		var role, service, method, ocID, status, pvType, pvCurr, timestamp, perfHex []byte
 		var pvAmt int64
 		err := rows.Scan(
-			&service, &method, &timestamp, &ocID, &status, &pvType, &pvAmt, &pvCurr,
-			&perfHex)
+			&role, &service, &method, &timestamp, &ocID, &status, &pvType, &pvAmt,
+			&pvCurr, &perfHex)
 		var rec Record
 
+		if len(role) != 0 {
+			rec.Role = Role(role)
+		}
 		if len(service) != 0 {
 			rec.Service = string(service)
 		}
@@ -174,6 +189,7 @@ func initTable(db *sql.DB) error {
 	sql := `
 CREATE TABLE rep (
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+  role TEXT,
   service TEXT,
   method TEXT,
   timestamp INTEGER,
@@ -214,16 +230,21 @@ func recordToSqlInsert(rec *Record) string {
 		pvCurr = rec.PaymentValue.Currency.String()
 	}
 	return fmt.Sprintf(`
-INSERT INTO rep(service, method, timestamp, ocID, status, paymentType, paymentValueAmount, paymentValueCurrency, perf)
-VALUES ("%s", "%s", "%d", "%s", "%s", "%s", "%d", "%s", x'%s');`,
-		qesc(rec.Service), qesc(rec.Method), rec.Timestamp, rec.OcID.String(),
-		rec.Status.String(), rec.PaymentType.String(), pvAmt, pvCurr, perfHex)
+INSERT INTO rep(role, service, method, timestamp, ocID, status, paymentType, paymentValueAmount, paymentValueCurrency, perf)
+VALUES ("%s", "%s", "%s", "%d", "%s", "%s", "%s", "%d", "%s", x'%s');`,
+		qesc(rec.Role.String()), qesc(rec.Service), qesc(rec.Method),
+		rec.Timestamp, rec.OcID.String(), rec.Status.String(),
+		rec.PaymentType.String(), pvAmt, pvCurr, perfHex)
 }
 
 func selectLikeRecord(rec *Record) string {
 	var buf bytes.Buffer
-	buf.WriteString("SELECT service, method, timestamp, ocID, status, paymentType, paymentValueAmount, paymentValueCurrency, perf FROM rep WHERE 1")
+
+	buf.WriteString("SELECT role, service, method, timestamp, ocID, status, paymentType, paymentValueAmount, paymentValueCurrency, perf FROM rep WHERE 1")
 	// buf.WriteString("SELECT status FROM rep WHERE 1")
+	if rec.Role != "" {
+		buf.WriteString(fmt.Sprintf(` AND role = "%s"`, qesc(rec.Role.String())))
+	}
 	if rec.Service != "" {
 		buf.WriteString(fmt.Sprintf(` AND service = "%s"`, qesc(rec.Service)))
 	}
