@@ -128,7 +128,7 @@ func SuccessRate(sel *Record) (float64, error) {
 
 func PrettyPrint(sel *Record) error {
 	Reduce(sel, func(r *Record) {
-		fmt.Printf("%v\n", r)
+		fmt.Printf("%+v\n", *r)
 	})
 	return nil
 }
