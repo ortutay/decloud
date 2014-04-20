@@ -2,16 +2,14 @@ package peer
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/util"
-	"github.com/peterbourgon/diskv"
 )
 
 type Peer struct {
-	OcID  msg.OcID
+	ID    msg.OcID
 	Coins []msg.BtcAddr
 }
 
@@ -55,7 +53,7 @@ func NewPeerFromReq(req *msg.OcReq, btcConf *util.BitcoindConf) (*Peer, error) {
 		}
 		coins = append(coins, msg.BtcAddr(coin))
 	}
-	return &Peer{OcID: req.ID, Coins: coins}, nil
+	return &Peer{ID: req.ID, Coins: coins}, nil
 }
 
 func (p *Peer) BtcBalance(minConf int) (int64, error) {
@@ -66,22 +64,9 @@ func peerDBPath() string {
 	return util.AppDir() + "/peer-diskv.db"
 }
 
-func getOrCreateDB() *diskv.Diskv {
-	flatTransform := func(s string) []string { return []string{} }
-	d := diskv.New(diskv.Options{
-		BasePath:     peerDBPath(),
-		Transform:    flatTransform,
-		CacheSizeMax: 1024 * 1024,
-	})
-	if d == nil {
-		log.Fatal("Couldn't open DB at %v", peerDBPath())
-	}
-	return d
-}
-
 func ocIDForCoin(coin string) (*msg.OcID, error) {
 	fmt.Printf("get oc ID for coin: %v\n", coin)
-	d := getOrCreateDB()
+	d := util.GetOrCreateDB(peerDBPath())
 	v, _ := d.Read(coin)
 	if v == nil || len(v) == 0 {
 		return nil, nil
@@ -92,7 +77,7 @@ func ocIDForCoin(coin string) (*msg.OcID, error) {
 
 func setOcIDForCoin(coin string, ocID *msg.OcID) error {
 	fmt.Printf("set oc ID for coin %v\n", coin)
-	d := getOrCreateDB()
+	d := util.GetOrCreateDB(peerDBPath())
 	err := d.Write(coin, []byte(ocID.String()))
 	util.Ferr(err)
 

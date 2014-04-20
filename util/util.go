@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"os"
 	"os/user"
@@ -12,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/conformal/btcjson"
+	"github.com/peterbourgon/diskv"
 )
 
 var _ = fmt.Println
@@ -223,4 +225,17 @@ func Ferr(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func GetOrCreateDB(path string) *diskv.Diskv {
+	flatTransform := func(s string) []string { return []string{} }
+	d := diskv.New(diskv.Options{
+		BasePath:     path,
+		Transform:    flatTransform,
+		CacheSizeMax: 1024 * 1024,
+	})
+	if d == nil {
+		log.Fatal("Couldn't open DB at %v", path)
+	}
+	return d
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/ortutay/decloud/cred"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/peer"
+	"github.com/ortutay/decloud/rep"
 	"github.com/ortutay/decloud/util"
 )
 
@@ -153,6 +154,8 @@ func (s *Server) Serve(listener net.Listener) error {
 			return
 		}
 
+		fmt.Printf("req from peer: %v\n", p)
+
 		// err = s.storePeerID(p)
 
 		if ok, status := s.isAllowedByPolicy(p, req); !ok {
@@ -180,6 +183,15 @@ func (s *Server) Serve(listener net.Listener) error {
 
 func (s *Server) isAllowedByPolicy(p *peer.Peer, req *msg.OcReq) (bool, msg.OcRespStatus) {
 	fmt.Printf("is allowed? %v\n", s)
+
+	// TODO: designate ratio in policy
+	paidRate, err := rep.PaidRate(&rep.Record{ID: p.ID})
+	if err != nil {
+		fmt.Printf("error: couldn't get paid rate: %v\n", err)
+		return false, msg.SERVER_ERROR
+	}
+	fmt.Printf("paid rate: %v\n", paidRate)
+
 	// policies := s.Conf.MatchingPolicies(req.Service, req.Method)
 	// for _, policy := range policies {
 	// 	fmt.Printf("check against policy: %v\n", policy)

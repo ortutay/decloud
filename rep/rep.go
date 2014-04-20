@@ -125,6 +125,30 @@ func SuccessRate(sel *Record) (float64, error) {
 	return counter["success"] / counter["total"], nil
 }
 
+func PaidRate(sel *Record) (float64, error) {
+	counter := make(map[string]float64)
+	counter["total_succes"] = float64(0)
+	counter["total_paid"] = float64(0)
+	reducer := func(rec *Record) {
+		c := counter
+		if rec.Status == SUCCESS_UNPAID ||
+			rec.Status == SUCCESS_PAID {
+			c["total_success"]++
+		}
+		if rec.Status == SUCCESS_PAID {
+			c["total_paid"]++
+		}
+	}
+	err := Reduce(sel, reducer)
+	if err != nil {
+		return 0, err
+	}
+	if (counter["total_success"]) == 0 {
+		return -1, nil
+	}
+	return counter["total_paid"] / counter["total_success"], nil
+}
+
 func PrettyPrint(sel *Record) error {
 	Reduce(sel, func(r *Record) {
 		fmt.Printf("%+v\n", *r)

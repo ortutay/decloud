@@ -76,7 +76,7 @@ func TestPeerFromReq(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p.OcID != req.ID {
+	if p.ID != req.ID {
 		t.FailNow()
 	}
 }
@@ -115,7 +115,7 @@ func TestPeerFromReqCoinReuse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p1.OcID != req1.ID {
+	if p1.ID != req1.ID {
 		t.FailNow()
 	}
 	p2, err := NewPeerFromReq(req2, btcConf)

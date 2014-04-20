@@ -1,7 +1,11 @@
 package payment
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
+	"math/rand"
+	"strings"
 
 	"github.com/conformal/btcjson"
 	"github.com/ortutay/decloud/msg"
@@ -13,6 +17,8 @@ const (
 	TXID_METHOD         = "txid"
 	PAYMENT_ADDR_METHOD = "addr"
 )
+
+const ADDRS_PER_ID int = 2
 
 func NewPaymentAddrReq(currency msg.Currency) *msg.OcReq {
 	msg := msg.OcReq{
@@ -65,14 +71,20 @@ func (ps *PaymentService) Handle(req *msg.OcReq) (*msg.OcResp, error) {
 }
 
 func (ps *PaymentService) getPaymentAddr(req *msg.OcReq) (*msg.OcResp, error) {
-	reqCurrency := req.Args[0]
+	if len(req.Args) > 1 {
+		return msg.NewRespError(msg.INVALID_ARGUMENTS), nil
+	}
+	reqCurrency := string(msg.BTC)
+	if len(req.Args) == 1 {
+		reqCurrency = strings.ToUpper(req.Args[0])
+	}
 	switch reqCurrency {
 	case string(msg.BTC):
 		if ps.BitcoindConf == nil {
 			return msg.NewRespError(msg.SERVER_ERROR), nil
 		}
 		// TODO(ortutay): smarter handling to map request ID to address
-		btcAddr, err := ps.fetchNewBtcAddr()
+		btcAddr, err := ps.addrForOcID(req.ID)
 		if err != nil {
 			return msg.NewRespError(msg.SERVER_ERROR), nil
 		}
@@ -81,6 +93,47 @@ func (ps *PaymentService) getPaymentAddr(req *msg.OcReq) (*msg.OcResp, error) {
 	default:
 		return msg.NewRespError(msg.CURRENCY_UNSUPPORTED), nil
 	}
+}
+
+func addrDBPath() string {
+	return util.AppDir() + "/payment-addrs-diskv.db"
+}
+
+func (ps *PaymentService) addrForOcID(id msg.OcID) (string, error) {
+	d := util.GetOrCreateDB(addrDBPath())
+	addrsSer, _ := d.Read(id.String())
+	fmt.Printf("read addrs: %v\n", addrsSer)
+	if addrsSer == nil || len(addrsSer) == 0 {
+		fmt.Printf("no addrs read, making...\n")
+		var addrs []string
+		for i := 0; i < ADDRS_PER_ID; i++ {
+			btcAddr, err := ps.fetchNewBtcAddr()
+			if err != nil {
+				log.Printf("error while generating addresses: %v\n", err)
+				return "", err
+			}
+			addrs = append(addrs, btcAddr)
+		}
+		ser, err := json.Marshal(addrs)
+		if err != nil {
+			return "", err
+		}
+		err = d.Write(id.String(), ser)
+		if err != nil {
+			return "", err
+		}
+		fmt.Printf("generated addresses: %v ser: %v\n", addrs, string(ser))
+		addrsSer, _ = d.Read(id.String())
+	}
+	var addrs []string
+	err := json.Unmarshal(addrsSer, &addrs)
+	if err != nil {
+		return "", err
+	}
+	if addrs == nil || len(addrs) == 0 {
+		panic("unexpected empty list")
+	}
+	return addrs[rand.Int()%len(addrs)], nil
 }
 
 func (ps *PaymentService) fetchNewBtcAddr() (string, error) {
