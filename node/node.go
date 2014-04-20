@@ -148,6 +148,7 @@ func (s *Server) Serve(listener net.Listener) error {
 
 		p, err := peer.NewPeerFromReq(req, s.BtcConf)
 		if err != nil {
+			fmt.Printf("error generating peer, %v\n", err)
 			// msg.NewRespError(msg.SERVER_ERROR).Write(conn)
 			return
 		}
@@ -163,6 +164,7 @@ func (s *Server) Serve(listener net.Listener) error {
 			return
 		}
 
+		fmt.Printf("passing off to handler...\n")
 		resp, err := s.Handler.Handle(req)
 		if err != nil {
 			msg.NewRespError(msg.SERVER_ERROR).Write(conn)

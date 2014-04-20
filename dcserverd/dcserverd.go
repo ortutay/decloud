@@ -88,7 +88,7 @@ func main() {
 		Cred:    &cred.Cred{
 			OcCred: *ocCred,
 			BtcConf: bConf,
-			Coins: []cred.BtcCred{}
+			Coins: []cred.BtcCred{},
 		},
 		BtcConf: bConf,
 		Conf:    config,

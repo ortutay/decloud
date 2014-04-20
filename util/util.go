@@ -218,3 +218,9 @@ func B2S(btc float64) int64 {
 func S2B(satoshis int64) float64 {
 	return float64(satoshis) / 1e8
 }
+
+func Ferr(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
