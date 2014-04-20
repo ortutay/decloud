@@ -44,6 +44,12 @@ const (
 	DEFER                = "defer"
 )
 
+type PaymentRequest struct {
+	Amount   int64    `json:"amount"`
+	Currency Currency `json:"currency"`
+	Addr     string   `json:"addr"`
+}
+
 type PaymentAddr struct {
 	Currency Currency `json:"currency"`
 	Addr     string   `json:"addr"`

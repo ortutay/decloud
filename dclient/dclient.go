@@ -88,7 +88,15 @@ func main() {
 		if err != nil {
 			log.Fatal(err.Error())
 		}
-		sendRequest(&c, qReq)
+		resp := sendRequest(&c, qReq)
+		if resp.Status == msg.OK {
+			var pv msg.PaymentValue
+			err := json.Unmarshal(resp.Body, &pv)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Printf("%v%v\n", util.S2B(pv.Amount), pv.Currency)
+		}
 	case "call":
 		req, err = makeReq(cmdArgs[1:])
 		if err != nil {
@@ -116,7 +124,7 @@ func main() {
 	}
 }
 
-func sendRequest(c *node.Client, req *msg.OcReq) {
+func sendRequest(c *node.Client, req *msg.OcReq) *msg.OcResp {
 	// Parse/attach payments
 	if *fDefer != "" {
 		pv, err := msg.NewPaymentValueParseString(*fDefer)
@@ -137,6 +145,16 @@ func sendRequest(c *node.Client, req *msg.OcReq) {
 		log.Fatal(err.Error())
 	}
 	fmt.Printf("got response\n%v\n", resp.String())
+	if resp.Status == msg.PLEASE_PAY {
+		var pr msg.PaymentRequest
+		err := json.Unmarshal(resp.Body, &pr)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("Server is requesting payment: %v%v to %v\n",
+			util.S2B(pr.Amount), pr.Currency, pr.Addr)
+	}
+	return resp
 }
 
 func payBtc(c *node.Client, cmdArgs []string) {

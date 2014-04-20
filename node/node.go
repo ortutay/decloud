@@ -2,6 +2,7 @@ package node
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"net"
 
@@ -154,31 +155,10 @@ func (s *Server) Serve(listener net.Listener) error {
 		}
 
 		// TODO(ortutay): more configuration options around allowed balance
-		balance, err := p.Balance(SERVER_PAYMENT_MIN_CONF, s.BtcConf)
-		if err != nil {
-			msg.NewRespError(msg.SERVER_ERROR).Write(conn)
-		}
-		fmt.Printf("balance: %v\n", balance)
-		if (balance.Currency != msg.BTC) {
-			panic("TODO: support other currencies")
-		}
-		maxBalance, err := s.Conf.PolicyForCmd(conf.MAX_BALANCE)
-		if err != nil {
-			// TODO(ortutay): handle more configuration around max balance
-			panic(err)
-		}
-		maxAllowed := maxBalance.Args[0].(*msg.PaymentValue).Amount
-		fmt.Printf("max balance: %v\n", maxBalance.Args[0])
-		if balance.Amount > maxAllowed {
-			addr, err := p.PaymentAddr(-1, s.BtcConf)
-			if err != nil {
-				msg.NewRespError(msg.SERVER_ERROR).Write(conn)
-			}
-			body := fmt.Sprintf("Balance due. Please pay %v %v to %v\n",
-				util.S2B(balance.Amount - maxAllowed),
-				balance.Currency.String(),
-				addr)
-			msg.NewRespErrorWithBody(msg.PLEASE_PAY, []byte(body)).Write(conn)
+		balanceDueResp := s.checkBalance(p)
+		if balanceDueResp != nil {
+			balanceDueResp.Write(conn)
+			return
 		}
 
 		if ok, status := s.isAllowedByPolicy(p, req); !ok {
@@ -201,6 +181,45 @@ func (s *Server) Serve(listener net.Listener) error {
 		}
 		return
 	})(conn)
+	return nil
+}
+
+func (s *Server) checkBalance(p *peer.Peer) *msg.OcResp{
+	balance, err := p.Balance(SERVER_PAYMENT_MIN_CONF, s.BtcConf)
+	if err != nil {
+		return msg.NewRespError(msg.SERVER_ERROR)
+	}
+	fmt.Printf("balance: %v\n", balance)
+	if (balance.Currency != msg.BTC) {
+		panic("TODO: support other currencies")
+	}
+	maxBalance, err := s.Conf.PolicyForCmd(conf.MAX_BALANCE)
+	if err != nil {
+		// TODO(ortutay): handle more configuration around max balance
+		panic(err)
+	}
+	maxAllowed := maxBalance.Args[0].(*msg.PaymentValue).Amount
+	fmt.Printf("max balance: %v\n", maxBalance.Args[0])
+	if balance.Amount > maxAllowed {
+		addr, err := p.PaymentAddr(-1, s.BtcConf)
+		if err != nil {
+			return msg.NewRespError(msg.SERVER_ERROR)
+		}
+		// TODO(ortutay): a clever client will notice that they can pay off just a
+		// small amount to stay just at the edge of the max balance. they do not
+		// much by doing this, and may waste money on miner fees, but nevertheless,
+		// we could have some smarter handling for that situation.
+		pr := msg.PaymentRequest{
+			Amount: balance.Amount,
+			Currency: balance.Currency,
+			Addr: addr,
+		}
+		body, err := json.Marshal(&pr)
+		if err != nil {
+			return msg.NewRespError(msg.SERVER_ERROR)
+		}
+		return msg.NewRespErrorWithBody(msg.PLEASE_PAY, []byte(body))
+	}
 	return nil
 }
 
