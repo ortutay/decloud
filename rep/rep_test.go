@@ -25,7 +25,7 @@ func TestRepPut(t *testing.T) {
 		Method:       "put",
 		Timestamp:    1234,
 		OcID:         msg.OcID("id-123"),
-		Status:       SUCCESS,
+		Status:       SUCCESS_PAID,
 		PaymentType:  msg.TXID,
 		PaymentValue: &msg.PaymentValue{Amount: 1000, Currency: msg.BTC},
 		Perf:         nil,
@@ -41,7 +41,7 @@ func TestSuccessRate(t *testing.T) {
 	defer os.RemoveAll(initDir(t))
 	id := msg.OcID("id-123")
 	otherID := msg.OcID("id-other")
-	_, err := Put(&Record{OcID: id, Status: SUCCESS, Timestamp: 123})
+	_, err := Put(&Record{OcID: id, Status: SUCCESS_PAID, Timestamp: 123})
 	if err != nil {
 		t.Fatal(err)
 	}

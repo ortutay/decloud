@@ -22,10 +22,11 @@ func (s Status) String() string {
 }
 
 const (
+	// Note that status can be used in either server or client context
 	PENDING Status = "pending"
-	SUCCESS        = "success"
+	SUCCESS_UNPAID        = "success-unpaid"
+	SUCCESS_PAID = "success-paid"
 	FAILURE        = "failure"
-	// TODO(ortutay): additional statuses
 )
 
 type Record struct {
@@ -93,10 +94,12 @@ func SuccessRate(sel *Record) (float64, error) {
 	counter["success"] = float64(0)
 	reducer := func(rec *Record) {
 		c := counter
-		if rec.Status == SUCCESS || rec.Status == FAILURE {
+		if (rec.Status == SUCCESS_UNPAID ||
+			rec.Status == SUCCESS_PAID ||
+			rec.Status == FAILURE) {
 			c["total"]++
 		}
-		if rec.Status == SUCCESS {
+		if (rec.Status == SUCCESS_UNPAID || rec.Status == SUCCESS_PAID) {
 			c["success"]++
 		}
 	}
