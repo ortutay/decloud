@@ -6,6 +6,7 @@ import (
 )
 
 const (
+
 	SERVICE_NAME = "store"
 
 	// TODO(ortutay): quote is not really a method of the service; may want to
@@ -13,19 +14,16 @@ const (
 	// [method] [method args...]
 	QUOTE_METHOD = "quote"
 
-	// [size] [time]
+	// [blob-id] [size] [time]
 	ALLOC_METHOD = "alloc"
 
-	// [container-id] [block-indexes] body: [block-data]
+	// [blob-id] [block-indexes] body: [block-data]
 	PUT_METHOD = "put"
 
-	// [container-id] [block-indexes] body: [block-hashes]
-	DIFF_METHOD = "diff"
-
-	// [blob-id|container-id] [block-indexs]
+	// [blob-id] [block-indexs]
 	GET_METHOD = "get"
 
-	// [blob-id|container-id] [block-indexs] [salt]
+	// [blob-id] [block-indexs] [salt]
 	HASH_METHOD = "hash"
 )
 
