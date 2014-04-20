@@ -1,5 +1,6 @@
 package rep
 
+
 import (
 	"bytes"
 	"database/sql"
@@ -41,15 +42,15 @@ const (
 )
 
 type Record struct {
-	Role Role
-	Service      string
-	Method       string // Is "Method" the appropriate field?
-	Timestamp    int
-	OcID         msg.OcID
-	Status       Status
-	PaymentType  msg.PaymentType
-	PaymentValue *msg.PaymentValue
-	Perf         interface{} // Service specific
+	Role Role `json:"role"`
+	Service      string `json:"service"`
+	Method       string `json:"method"` // Is "Method the appropriate field?
+	Timestamp    int `json:"timestamp"`
+	ID         msg.OcID `json:"id"`
+	Status       Status `json:"status"`
+	PaymentType  msg.PaymentType `json:"paymentType"`
+	PaymentValue *msg.PaymentValue `json:"paymentValue"`
+	Perf         interface{} `json:"-"` // Service specific
 }
 
 type Cursor interface {
@@ -125,6 +126,13 @@ func SuccessRate(sel *Record) (float64, error) {
 	return counter["success"] / counter["total"], nil
 }
 
+func PrettyPrint(sel *Record) error {
+	Reduce(sel, func(r *Record) {
+		fmt.Printf("%v\n", r)
+	})
+	return nil
+}
+
 func Reduce(sel *Record, reduceFn func(rec *Record)) error {
 	db, err := openOrCreate()
 	if err != nil {
@@ -155,7 +163,7 @@ func Reduce(sel *Record, reduceFn func(rec *Record)) error {
 			rec.Method = string(method)
 		}
 		if len(ocID) != 0 {
-			rec.OcID = msg.OcID(ocID)
+			rec.ID = msg.OcID(ocID)
 		}
 		if len(status) != 0 {
 			rec.Status = Status(status)
@@ -233,7 +241,7 @@ func recordToSqlInsert(rec *Record) string {
 INSERT INTO rep(role, service, method, timestamp, ocID, status, paymentType, paymentValueAmount, paymentValueCurrency, perf)
 VALUES ("%s", "%s", "%s", "%d", "%s", "%s", "%s", "%d", "%s", x'%s');`,
 		qesc(rec.Role.String()), qesc(rec.Service), qesc(rec.Method),
-		rec.Timestamp, rec.OcID.String(), rec.Status.String(),
+		rec.Timestamp, rec.ID.String(), rec.Status.String(),
 		rec.PaymentType.String(), pvAmt, pvCurr, perfHex)
 }
 
@@ -254,8 +262,8 @@ func selectLikeRecord(rec *Record) string {
 	if rec.Timestamp != 0 {
 		buf.WriteString(fmt.Sprintf(` AND timestamp = %d`, rec.Timestamp))
 	}
-	if rec.OcID.String() != "" {
-		buf.WriteString(fmt.Sprintf(` AND ocID = "%s"`, rec.OcID.String()))
+	if rec.ID.String() != "" {
+		buf.WriteString(fmt.Sprintf(` AND ocID = "%s"`, rec.ID.String()))
 	}
 	if rec.Status.String() != "" {
 		buf.WriteString(fmt.Sprintf(` AND status = "%s"`, rec.Status.String()))

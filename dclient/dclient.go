@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/ortutay/decloud/node"
 	"github.com/ortutay/decloud/services/calc"
 	"github.com/ortutay/decloud/util"
+	"github.com/ortutay/decloud/rep"
 )
 
 // General flags
@@ -95,6 +97,20 @@ func main() {
 		sendRequest(&c, req)
 	case "pay":
 		payBtc(&c, cmdArgs)
+	case "listrep":
+		sel := rep.Record{}
+		if len(cmdArgs) > 1 {
+			selJson := cmdArgs[1]
+			err := json.Unmarshal([]byte(selJson), &sel)
+			if err != nil {
+				log.Fatal(err.Error())
+			}
+			fmt.Printf("sel json: %v %v\n", selJson, sel)
+		}
+		err := rep.PrettyPrint(&sel)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
 	default:
 		fmt.Printf("unrecognized command: %v", cmdArgs)
 	}
