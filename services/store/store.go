@@ -323,7 +323,7 @@ func (ss *StoreService) put(req *msg.OcReq) (*msg.OcResp, error) {
 		containerID = ocIDToContainerID(req.ID)
 	}
 	var blobID BlobID
-	if len(req.Args) == 2 && req.Args[0] != "." {
+	if len(req.Args) == 2 && req.Args[1] != "." {
 		blobID = BlobID(req.Args[1])
 	}
 
