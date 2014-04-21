@@ -212,6 +212,15 @@ func (c *Container) WriteNewBlobID(id BlobID) {
 	util.Ferr(err)
 }
 
+func (c *Container) HasBlobID(targetID BlobID) bool {
+	for _, id := range c.BlobIDs {
+		if id == targetID {
+			return true
+		}
+	}
+	return false
+}
+
 func containerToBlobsDB() string {
  	return util.ServiceDir(SERVICE_NAME) + "/container-to-blobs.db"
 }
@@ -278,6 +287,7 @@ func (ss *StoreService) Handle(req *msg.OcReq) (*msg.OcResp, error) {
 	methods := make(map[string]func(*msg.OcReq) (*msg.OcResp, error))
 	methods[ALLOC_METHOD] = ss.alloc
 	methods[PUT_METHOD] = ss.put
+	methods[GET_METHOD] = ss.get
 
 	if method, ok := methods[req.Method]; ok {
 		return method(req)
@@ -336,18 +346,27 @@ func updateIndexes(cont *Container) error {
 }
 
 func (ss *StoreService) put(req *msg.OcReq) (*msg.OcResp, error) {
-	if len(req.Args) > 2 {
-		return msg.NewRespError(msg.INVALID_ARGUMENTS), nil
-	}
 	var containerID ContainerID
-	if len(req.Args) >= 1 && req.Args[0] != "." {
-		containerID = ContainerID(req.Args[0])
-	} else {
-		containerID = ocIDToContainerID(req.ID)
-	}
 	var blobID BlobID
-	if len(req.Args) == 2 && req.Args[1] != "." {
+	if len(req.Args) == 0 {
+		containerID = ocIDToContainerID(req.ID)
+		// blob will be read from request
+	} else if len(req.Args) == 1 {
+		if req.Args[0] == "." {
+			containerID = ocIDToContainerID(req.ID)
+		} else {
+			containerID = ContainerID(req.Args[0])
+		}
+		// blob will be read from request
+	} else if len(req.Args) == 2 {
+		if req.Args[0] == "." {
+			containerID = ocIDToContainerID(req.ID)
+		} else {
+			containerID = ContainerID(req.Args[0])
+		}
 		blobID = BlobID(req.Args[1])
+	} else {
+		return msg.NewRespError(msg.INVALID_ARGUMENTS), nil
 	}
 
 	if containerID != ocIDToContainerID(req.ID) {
@@ -400,10 +419,49 @@ func (ss *StoreService) put(req *msg.OcReq) (*msg.OcResp, error) {
 // }
 
 func (ss *StoreService) get(req *msg.OcReq) (*msg.OcResp, error) {
-	// validate node-id -> container-id
-	// validate container-id -> blob-id
-	// return blob
-	return nil, nil
+	var containerID ContainerID
+	var blobID BlobID
+	if len(req.Args) == 1 {
+		containerID = ocIDToContainerID(req.ID)
+		blobID = BlobID(req.Args[0])
+	} else if len(req.Args) == 2 {
+		if req.Args[0] == "." {
+			containerID = ocIDToContainerID(req.ID)
+		} else {
+			containerID = ContainerID(req.Args[0])
+		}
+		blobID = BlobID(req.Args[1])
+	} else {
+		return msg.NewRespError(msg.INVALID_ARGUMENTS), nil
+	}
+
+	fmt.Printf("get %v %v\n", containerID, blobID)
+
+	if containerID != ocIDToContainerID(req.ID) {
+		resp := msg.NewRespErrorWithBody(msg.INVALID_ARGUMENTS,
+			[]byte("Cannot access that container"))
+		return resp, nil
+	}
+
+	container := NewContainerFromDisk(req.ID)
+	if !container.HasBlobID(blobID) {
+		resp := msg.NewRespErrorWithBody(msg.INVALID_ARGUMENTS,
+			[]byte("Cannot access that blob"))
+		return resp, nil
+	}
+
+	blob, err := NewBlobFromDisk(blobID)
+	if err != nil {
+		return msg.NewRespError(msg.SERVER_ERROR), nil
+	}
+	var buf bytes.Buffer
+	for _, block := range blob.Blocks {
+		_, err := buf.Write(block.Data)
+		if err != nil {
+			return msg.NewRespError(msg.SERVER_ERROR), nil
+		}
+	}
+	return msg.NewRespOk(buf.Bytes()), nil
 }
 
 func (ss *StoreService) hash(req *msg.OcReq) (*msg.OcResp, error) {
