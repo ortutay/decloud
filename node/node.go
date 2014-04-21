@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/conformal/btcjson"
 	"github.com/ortutay/decloud/conf"
@@ -93,6 +94,10 @@ type ServiceMux struct {
 	Services map[string]Handler
 }
 
+type PeriodicWaker interface {
+	PeriodicWake()
+}
+
 func (sm *ServiceMux) Handle(req *msg.OcReq) (*msg.OcResp, error) {
 	if service, ok := sm.Services[req.Service]; ok {
 		return service.Handle(req)
@@ -107,6 +112,7 @@ type Server struct {
 	Addr    string
 	Conf    *conf.Conf
 	Handler Handler
+	PeriodicWakers []PeriodicWaker
 }
 
 func (s *Server) ListenAndServe() error {
@@ -116,6 +122,18 @@ func (s *Server) ListenAndServe() error {
 		return fmt.Errorf("couldn't listen on %s: %s", s.Addr, err.Error())
 	}
 	defer listener.Close()
+
+	// Waker alarm loop
+	go (func() {
+		for {
+			for _, waker := range s.PeriodicWakers {
+				waker.PeriodicWake()
+			}
+			time.Sleep(1 * time.Second)
+		}
+	})()
+
+	// Lisetn loop
 	for {
 		err := s.Serve(listener)
 		if err != nil {

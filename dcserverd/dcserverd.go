@@ -86,12 +86,17 @@ func main() {
 	addr := fmt.Sprintf(":%v", *fPort)
 
 	// TODO(ortutay): configure which services to run from command line args
+	calcService := calc.CalcService{Conf: config}
+	paymentService := payment.PaymentService{BitcoindConf: bConf}
 	services := make(map[string]node.Handler)
-	services[calc.SERVICE_NAME] = calc.CalcService{Conf: config}
-	services[payment.SERVICE_NAME] = &payment.PaymentService{BitcoindConf: bConf}
+	services[calc.SERVICE_NAME] = &calcService
+	services[payment.SERVICE_NAME] = &paymentService
 	mux := node.ServiceMux{
 		Services: services,
 	}
+
+	wakers := []node.PeriodicWaker{}
+
 	s := node.Server{
 		Cred: &cred.Cred{
 			OcCred:  *ocCred,
@@ -102,6 +107,7 @@ func main() {
 		Conf:    config,
 		Addr:    addr,
 		Handler: &mux,
+		PeriodicWakers: wakers,
 	}
 	err = s.ListenAndServe()
 	if err != nil {
