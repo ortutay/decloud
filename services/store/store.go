@@ -192,7 +192,7 @@ type Container struct {
 func NewContainerFromDisk(id msg.OcID) *Container {
 	d := util.GetOrCreateDB(containersDB())
 	containerID := ocIDToContainerID(id)
-	ser, _ := d.Read(containerID.String())
+	ser, _ := d.Read(id.String())
 	if ser == nil || len(ser) == 0 {
 		return &Container{ID: containerID, OwnerID: id}
 	} else {
@@ -208,7 +208,7 @@ func (c *Container) WriteNewBlobID(id BlobID) {
 	c.BlobIDs = append(c.BlobIDs, id)
 	blobIDsSer, err := json.Marshal(c)
 	util.Ferr(err)
-	err = d.Write(c.ID.String(), blobIDsSer)
+	err = d.Write(c.OwnerID.String(), blobIDsSer)
 	util.Ferr(err)
 }
 
