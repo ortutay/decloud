@@ -20,7 +20,7 @@ const (
 
 	// TODO(ortutay): quote is not really a method of the service; may want to
 	// put it in a separate package
-	// [method] [method args...]
+	// put [size] [time]
 	QUOTE_METHOD = "quote"
 
 	// no arguments
@@ -235,8 +235,19 @@ type StoreService struct {
 }
 
 func (ss *StoreService) Handle(req *msg.OcReq) (*msg.OcResp, error) {
-	_ = make(map[string]func(*msg.OcReq) (*msg.OcResp, error))
-	return nil, nil
+	println(fmt.Sprintf("calc got request: %v", req))
+	if req.Service != SERVICE_NAME {
+		panic(fmt.Sprintf("unexpected service %s", req.Service))
+	}
+
+	methods := make(map[string]func(*msg.OcReq) (*msg.OcResp, error))
+	methods[ALLOC_METHOD] = ss.alloc
+
+	if method, ok := methods[req.Method]; ok {
+		return method(req)
+	} else {
+		return msg.NewRespError(msg.METHOD_UNSUPPORTED), nil
+	}
 }
 
 func (ss *StoreService) quote(req *msg.OcReq) (*msg.OcResp, error) {
@@ -244,7 +255,9 @@ func (ss *StoreService) quote(req *msg.OcReq) (*msg.OcResp, error) {
 }
 
 func (ss *StoreService) alloc(req *msg.OcReq) (*msg.OcResp, error) {
-	return nil, nil
+	// TODO(ortutay): may want multiple contianers per client
+	id := util.Sha256AsString([]byte(req.ID.String()))
+	return msg.NewRespOk([]byte(id)), nil
 }
 
 func blobToBlocksDB() string {
