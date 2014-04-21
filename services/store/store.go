@@ -186,7 +186,30 @@ func (c ContainerID) String() string {
 type Container struct {
 	ID ContainerID
 	OwnerID msg.OcID
-	Blobs []*Blob
+	BlobIDs []BlobID
+}
+
+func NewContainerFromDisk(id msg.OcID) *Container {
+	d := util.GetOrCreateDB(containerToBlobsDB())
+	containerID := ocIDToContainerID(id)
+	blobIDsSer, _ := d.Read(containerID.String())
+	var blobIDs []BlobID
+	if blobIDsSer == nil || len(blobIDsSer) == 0 {
+		blobIDs = make([]BlobID, 0)
+	} else {
+		err := json.Unmarshal(blobIDsSer, &blobIDs)
+		util.Ferr(err)
+	}
+	return &Container{ID: containerID, OwnerID: id, BlobIDs: blobIDs}
+}
+
+func (c *Container) WriteNewBlobID(id BlobID) {
+	d := util.GetOrCreateDB(containerToBlobsDB())
+	c.BlobIDs = append(c.BlobIDs, id)
+	blobIDsSer, err := json.Marshal(c.BlobIDs)
+	util.Ferr(err)
+	err = d.Write(c.ID.String(), blobIDsSer)
+	util.Ferr(err)
 }
 
 func containerToBlobsDB() string {
@@ -361,26 +384,14 @@ func (ss *StoreService) put(req *msg.OcReq) (*msg.OcResp, error) {
 	}
 	
 	// Append blob-id to container-id
-	d := util.GetOrCreateDB(containerToBlobsDB())
-	idsSer, err := d.Read(containerID.String())
-	var ids []BlobID
-	if idsSer == nil || len(idsSer) == 0 {
-		ids = make([]BlobID, 0)
-	} else {
-		err = json.Unmarshal(idsSer, &ids)
-		util.Ferr(err)
-	}
-	for _, id := range ids {
+	container := NewContainerFromDisk(req.ID)
+	for _, id := range container.BlobIDs {
 		if id == blob.ID {
 			return msg.NewRespOk([]byte("")), nil
 		}
 	}
+	container.WriteNewBlobID(blob.ID)
 
-	ids = append(ids, blob.ID)
-	idsSer, err = json.Marshal(ids)
-	util.Ferr(err)
-	err = d.Write(blob.ID.String(), idsSer)
-	util.Ferr(err)
 	return msg.NewRespOk([]byte(blob.ID.String())), nil
 }
 
