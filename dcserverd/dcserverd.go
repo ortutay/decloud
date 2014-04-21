@@ -88,7 +88,7 @@ func main() {
 
 	// TODO(ortutay): configure which services to run from command line args
 	calcService := calc.CalcService{Conf: config}
-	paymentService := payment.PaymentService{BitcoindConf: bConf}
+	paymentService := payment.PaymentService{Conf: config, BitcoindConf: bConf}
 	storeService := store.StoreService{Conf: config}
 
 	services := make(map[string]node.Handler)
@@ -99,7 +99,7 @@ func main() {
 		Services: services,
 	}
 
-	wakers := []node.PeriodicWaker{}
+	wakers := []node.PeriodicWaker{&storeService}
 
 	s := node.Server{
 		Cred: &cred.Cred{

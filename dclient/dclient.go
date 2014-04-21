@@ -14,6 +14,7 @@ import (
 	"github.com/ortutay/decloud/node"
 	"github.com/ortutay/decloud/rep"
 	"github.com/ortutay/decloud/services/calc"
+	"github.com/ortutay/decloud/services/payment"
 	"github.com/ortutay/decloud/util"
 
 	"github.com/andrew-d/go-termutil"
@@ -111,7 +112,20 @@ func main() {
 		if err != nil {
 			log.Fatal(err.Error())
 		}
-		sendRequest(&c, req)
+		resp := sendRequest(&c, req)
+		switch fmt.Sprintf("%v.%v", req.Service, req.Method) {
+		case "payment.balance": {
+			var br payment.BalanceResponse
+			err := json.Unmarshal(resp.Body, &br)
+			if err != nil {
+				log.Fatalf("malformed response")
+			}
+			fmt.Printf("Server reports balance of %v%v (max allowed is %v%v), %v\n",
+				util.S2B(br.Balance.Amount), br.Balance.Currency,
+				util.S2B(br.MaxBalance.Amount), br.MaxBalance.Currency,
+				br.Addr)
+		}
+		}
 	case "pay":
 		payBtc(&c, cmdArgs)
 	case "listrep":

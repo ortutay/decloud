@@ -85,7 +85,6 @@ func Put(rec *Record) (int64, error) {
 	}
 	defer db.Close()
 	cmd := recordToSqlInsert(rec)
-	fmt.Printf("insert %v\n", cmd)
 	result, err := db.Exec(cmd)
 	if err != nil {
 		return 0, fmt.Errorf("error while trying to insert %v: %v",

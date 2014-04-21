@@ -1,6 +1,7 @@
 package store
 
 import (
+	"time"
 	"bytes"
 	"os"
 	"io/ioutil"
@@ -13,6 +14,7 @@ import (
 	"github.com/ortutay/decloud/conf"
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/util"
+	"github.com/ortutay/decloud/rep"
 )
 
 const (
@@ -276,6 +278,7 @@ func NewHashReq() *msg.OcReq {
 
 type StoreService struct {
 	Conf *conf.Conf
+	lastWake int64
 }
 
 func (ss *StoreService) Handle(req *msg.OcReq) (*msg.OcResp, error) {
@@ -293,6 +296,63 @@ func (ss *StoreService) Handle(req *msg.OcReq) (*msg.OcResp, error) {
 		return method(req)
 	} else {
 		return msg.NewRespError(msg.METHOD_UNSUPPORTED), nil
+	}
+}
+
+func costForBytesSeconds(bytes int, seconds int) *msg.PaymentValue {
+	costBtc := float64(bytes) * float64(seconds) * .000001
+	return &msg.PaymentValue{Amount: util.B2S(costBtc), Currency: msg.BTC}
+}
+
+func (ss *StoreService) PeriodicWake() {
+	now := time.Now().Unix()
+	if ss.lastWake == 0 {
+		ss.lastWake = now
+	}
+	period := int64(5)
+	if now - ss.lastWake < period {
+		return
+	}
+	ss.lastWake = now
+	d := util.GetOrCreateDB(containersDB())
+	keys := d.Keys()
+	for {
+		key := <-keys
+		if len(key) == 0 {
+			break
+		}
+		bytesUsed := 0
+		id := msg.OcID(key)
+		container := NewContainerFromDisk(id)
+		seenBlocks := make(map[string]bool)
+		for _, blobID := range container.BlobIDs {
+			// TODO(ortutay): don't read blocks from disk just to find sizes
+			blob, err := NewBlobFromDisk(blobID)
+			if err != nil {
+				continue
+			}
+			for _, block := range blob.Blocks {
+				if _, ok := seenBlocks[block.ID.String()]; ok {
+					continue
+				}
+				seenBlocks[block.ID.String()] = true
+				bytesUsed += len(block.Data)
+			}
+		}
+		costPv := costForBytesSeconds(bytesUsed, int(period))
+		fmt.Printf("bytes %v used by %v..., cost: %f %v\n",
+			bytesUsed, id.String()[:8], util.S2B(costPv.Amount), costPv.Currency)
+		rec := rep.Record{
+			Role: rep.SERVER,
+			Service: SERVICE_NAME,
+			Method: PUT_METHOD,
+			Timestamp: int(now),
+			ID: id,
+			Status: rep.SUCCESS_UNPAID,
+			PaymentValue: costPv,
+			Perf: nil,
+		}
+		rep.Put(&rec)
 	}
 }
 
