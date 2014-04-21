@@ -313,7 +313,7 @@ func updateIndexes(cont *Container) error {
 }
 
 func (ss *StoreService) put(req *msg.OcReq) (*msg.OcResp, error) {
-	if len(req.Args) < 1 || len(req.Args) > 2 {
+	if len(req.Args) > 2 {
 		return msg.NewRespError(msg.INVALID_ARGUMENTS), nil
 	}
 	var containerID ContainerID
@@ -381,7 +381,7 @@ func (ss *StoreService) put(req *msg.OcReq) (*msg.OcResp, error) {
 	util.Ferr(err)
 	err = d.Write(blob.ID.String(), idsSer)
 	util.Ferr(err)
-	return msg.NewRespOk([]byte("")), nil
+	return msg.NewRespOk([]byte(blob.ID.String())), nil
 }
 
 // func (ss *StoreService) diff(req *msg.OcReq) (*msg.OcResp, error) {
