@@ -1,6 +1,8 @@
 package util
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"bufio"
 	"errors"
 	"fmt"
@@ -124,7 +126,7 @@ func normalizeFilename(filename string) (string, error) {
 	if path.IsAbs(filename) {
 		return filename, nil
 	} else {
-		err := makeAppDir()
+		err := MakeDir(AppDir())
 		if err != nil {
 			return "", err
 		}
@@ -138,15 +140,25 @@ func normalizeFilename(filename string) (string, error) {
 
 func AppDir() string {
 	re := regexp.MustCompile("^~")
-	return string(re.ReplaceAll([]byte(appDir), []byte(os.Getenv("HOME"))))
+	dir := string(re.ReplaceAll([]byte(appDir), []byte(os.Getenv("HOME"))))
+	err := MakeDir(dir)
+	Ferr(err)
+	return dir
+}
+
+func ServiceDir(serviceName string) string {
+	dir := AppDir() + "/services/" + serviceName
+	err := MakeDir(dir)
+	Ferr(err)
+	return dir
 }
 
 func SetAppDir(newAppDir string) {
 	appDir = newAppDir
 }
 
-func makeAppDir() error {
-	err := os.Mkdir(AppDir(), 0775)
+func MakeDir(dir string) error {
+	err := os.MkdirAll(dir, 0775)
 	if os.IsExist(err) {
 		return nil
 	} else {
@@ -253,3 +265,10 @@ func GetOrCreateDB(path string) *diskv.Diskv {
 	return d
 }
 
+func Sha256AsString(data []byte) string {
+	h := sha256.New()
+	_, err := h.Write(data)
+	Ferr(err)
+	b := h.Sum([]byte{})
+	return hex.EncodeToString(b)
+}

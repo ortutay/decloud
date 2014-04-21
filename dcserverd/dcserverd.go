@@ -13,6 +13,7 @@ import (
 	"github.com/ortutay/decloud/node"
 	"github.com/ortutay/decloud/services/calc"
 	"github.com/ortutay/decloud/services/payment"
+	"github.com/ortutay/decloud/services/store"
 	"github.com/ortutay/decloud/util"
 )
 
@@ -88,9 +89,12 @@ func main() {
 	// TODO(ortutay): configure which services to run from command line args
 	calcService := calc.CalcService{Conf: config}
 	paymentService := payment.PaymentService{BitcoindConf: bConf}
+	storeService := store.StoreService{Conf: config}
+
 	services := make(map[string]node.Handler)
 	services[calc.SERVICE_NAME] = &calcService
 	services[payment.SERVICE_NAME] = &paymentService
+	services[store.SERVICE_NAME] = &storeService
 	mux := node.ServiceMux{
 		Services: services,
 	}

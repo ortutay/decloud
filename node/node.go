@@ -190,7 +190,7 @@ func (s *Server) Serve(listener net.Listener) error {
 
 		fmt.Printf("passing off to handler...\n")
 		resp, err := s.Handler.Handle(req)
-		if err != nil {
+		if err != nil || resp == nil {
 			fmt.Printf("server error: %v\n", err)
 			msg.NewRespError(msg.SERVER_ERROR).Write(conn)
 		} else {
