@@ -135,6 +135,7 @@ func addrDBPath() string {
 
 func (p *Peer) readPaymentAddrs() ([]string) {
 	d := util.GetOrCreateDB(addrDBPath())
+	fmt.Printf("p: %v\n", p)
 	addrsSer, _ := d.Read(p.ID.String())
 	if addrsSer == nil || len(addrsSer) == 0 {
 		return []string{}

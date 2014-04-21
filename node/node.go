@@ -1,6 +1,7 @@
 package node
 
 import (
+	"log"
 	"bufio"
 	"encoding/json"
 	"fmt"
@@ -169,7 +170,15 @@ func (s *Server) Serve(listener net.Listener) error {
 
 		p, err := peer.NewPeerFromReq(req, s.BtcConf)
 		if err != nil {
-			msg.NewRespError(msg.SERVER_ERROR).Write(conn)
+			log.Printf("error generating peer: %v\n", err)
+			if err == peer.INVALID_SIGNATURE {
+				msg.NewRespError(msg.INVALID_SIGNATURE).Write(conn)
+			} else if err == peer.COIN_REUSE {
+				msg.NewRespError(msg.COIN_REUSE).Write(conn)
+			} else {
+				msg.NewRespError(msg.SERVER_ERROR).Write(conn)
+			}
+			return
 		}
 
 		// TODO(ortutay): more configuration options around allowed balance
@@ -202,7 +211,7 @@ func (s *Server) Serve(listener net.Listener) error {
 	return nil
 }
 
-func (s *Server) checkBalance(p *peer.Peer) *msg.OcResp{
+func (s *Server) checkBalance(p *peer.Peer) *msg.OcResp {
 	balance, err := p.Balance(SERVER_PAYMENT_MIN_CONF, s.BtcConf)
 	if err != nil {
 		return msg.NewRespError(msg.SERVER_ERROR)

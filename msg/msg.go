@@ -149,6 +149,11 @@ type OcReq struct {
 	Body          []byte        `json:"-"`
 }
 
+func (r *OcReq) SetBody(body []byte) {
+	r.ContentLength = len(body)
+	r.Body = body
+}
+
 func (r *OcReq) WriteSignablePortion(w io.Writer) error {
 	w.Write([]byte(r.Nonce))
 	w.Write([]byte(r.Service))
@@ -215,11 +220,14 @@ const (
 	CLIENT_ERROR        = "client-error"
 	BAD_REQUEST         = CLIENT_ERROR + "/bad-request"
 	INVALID_SIGNATURE   = CLIENT_ERROR + "/invalid-signature"
+	COIN_REUSE   = CLIENT_ERROR + "/coin-reuse"
 	SERVICE_UNSUPPORTED = CLIENT_ERROR + "/service-unsupported"
 	METHOD_UNSUPPORTED  = CLIENT_ERROR + "/method-unsupported"
 	INVALID_ARGUMENTS   = CLIENT_ERROR + "/invalid-arguments"
 
 	SERVER_ERROR = "server-error"
+
+	CANNOT_COMPLETE_REQUEST   = SERVER_ERROR + "/cannot-complete-request"
 
 	REQUEST_DECLINED     = "request-declined"
 	REFRESH_NONCE        = REQUEST_DECLINED + "/refresh-nonce"
@@ -303,7 +311,6 @@ func ReadOcResp(r *bufio.Reader) (*OcResp, error) {
 		return nil, fmt.Errorf("error while reading JSON line: %v", err.Error())
 	}
 	var resp OcResp
-	fmt.Printf("resp line: %v\n", jsonLine)
 	err = json.Unmarshal(jsonLine, &resp)
 	if err != nil {
 		return nil, fmt.Errorf("error while unmarshalling: %v", err.Error())

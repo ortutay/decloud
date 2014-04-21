@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"io/ioutil"
 
 	"github.com/droundy/goopt"
 	"github.com/ortutay/decloud/cred"
@@ -14,6 +15,8 @@ import (
 	"github.com/ortutay/decloud/rep"
 	"github.com/ortutay/decloud/services/calc"
 	"github.com/ortutay/decloud/util"
+
+	"github.com/andrew-d/go-termutil"
 )
 
 // General flags
@@ -67,7 +70,14 @@ func main() {
 			Coins:   *coins,
 		},
 	}
-	fmt.Printf("client %v\n", c)
+
+	var body []byte
+	if !termutil.Isatty(os.Stdin.Fd()) {
+		var err error
+		body, err = ioutil.ReadAll(os.Stdin)
+		util.Ferr(err)
+	}
+	fmt.Printf("body: %v\n", string(body))
 
 	cmdArgs := make([]string, 0)
 	for _, arg := range os.Args[1:] {
@@ -75,7 +85,6 @@ func main() {
 			cmdArgs = append(cmdArgs, arg)
 		}
 	}
-	fmt.Printf("cmd args: %v\n", cmdArgs)
 	if len(cmdArgs) == 0 {
 		// TODO(ortutay): print usage info
 		return
@@ -98,7 +107,7 @@ func main() {
 			fmt.Printf("%v%v\n", util.S2B(pv.Amount), pv.Currency)
 		}
 	case "call":
-		req, err = makeReq(cmdArgs[1:])
+		req, err = makeReq(cmdArgs[1:], body)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
@@ -177,7 +186,7 @@ func payBtc(c *node.Client, cmdArgs []string) {
 }
 
 func makeQuoteReq(args []string) (*msg.OcReq, error) {
-	req, err := makeReq(args)
+	req, err := makeReq(args, nil)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't make request to quote: %v", err.Error())
 	}
@@ -190,7 +199,7 @@ func makeQuoteReq(args []string) (*msg.OcReq, error) {
 	}
 }
 
-func makeReq(args []string) (*msg.OcReq, error) {
+func makeReq(args []string, body []byte) (*msg.OcReq, error) {
 	s := strings.Split(args[0], ".")
 	if len(s) != 2 {
 		return nil, fmt.Errorf("expected server.method, but got: %v", args[0])
@@ -206,7 +215,11 @@ func makeReq(args []string) (*msg.OcReq, error) {
 		PaymentType:   "",
 		PaymentTxn:    "",
 		ContentLength: 0,
-		Body:          []byte(""),
+	}
+	if body != nil {
+		req.SetBody(body)
+		req.ContentLength = len(body)
+		req.Body = body
 	}
 	return &req, nil
 }

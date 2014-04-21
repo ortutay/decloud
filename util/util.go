@@ -179,15 +179,15 @@ const (
 func (b ByteSize) String() string {
 	switch {
 	case b >= TB:
-		return fmt.Sprintf("%.2fTB", float64(b)/float64(TB))
+		return fmt.Sprintf("%.1fTB", float64(b)/float64(TB))
 	case b >= GB:
-		return fmt.Sprintf("%.2fGB", float64(b)/float64(GB))
+		return fmt.Sprintf("%.1fGB", float64(b)/float64(GB))
 	case b >= MB:
-		return fmt.Sprintf("%.2fMB", float64(b)/float64(MB))
+		return fmt.Sprintf("%.1fMB", float64(b)/float64(MB))
 	case b >= KB:
-		return fmt.Sprintf("%.2fKB", float64(b)/float64(KB))
+		return fmt.Sprintf("%.1fKB", float64(b)/float64(KB))
 	}
-	return fmt.Sprintf("%.2fB", b)
+	return fmt.Sprintf("%.1fB", b)
 }
 
 func (b ByteSize) Int() int {
@@ -272,3 +272,4 @@ func Sha256AsString(data []byte) string {
 	b := h.Sum([]byte{})
 	return hex.EncodeToString(b)
 }
+

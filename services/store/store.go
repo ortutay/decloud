@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bytes"
 	"os"
 	"io/ioutil"
 	"log"
@@ -39,6 +40,10 @@ const (
 )
 
 const BYTES_PER_BLOCK = 4096
+
+// TODO(ortutay): these should be configured via flags
+const MAX_BLOB_BYTES = 50 * 1e6 // 50 MB
+const MAX_CONTAINER_BYTES = 500 * 1e6 // 500 MB
 
 type BlockID string
 
@@ -174,10 +179,18 @@ func (b *Blob) BlockIDs() []BlockID {
 
 type ContainerID string
 
+func (c ContainerID) String() string {
+	return string(c)
+}
+
 type Container struct {
 	ID ContainerID
 	OwnerID msg.OcID
 	Blobs []*Blob
+}
+
+func containerToBlobsDB() string {
+ 	return util.ServiceDir(SERVICE_NAME) + "/container-to-blobs.db"
 }
 
 type WorkPut struct {
@@ -234,13 +247,14 @@ type StoreService struct {
 }
 
 func (ss *StoreService) Handle(req *msg.OcReq) (*msg.OcResp, error) {
-	println(fmt.Sprintf("calc got request: %v", req))
+	println(fmt.Sprintf("store got request: %v", req))
 	if req.Service != SERVICE_NAME {
 		panic(fmt.Sprintf("unexpected service %s", req.Service))
 	}
 
 	methods := make(map[string]func(*msg.OcReq) (*msg.OcResp, error))
 	methods[ALLOC_METHOD] = ss.alloc
+	methods[PUT_METHOD] = ss.put
 
 	if method, ok := methods[req.Method]; ok {
 		return method(req)
@@ -253,10 +267,14 @@ func (ss *StoreService) quote(req *msg.OcReq) (*msg.OcResp, error) {
 	return nil, nil
 }
 
+func ocIDToContainerID(id msg.OcID) ContainerID {
+	return ContainerID(util.Sha256AsString([]byte(id.String())))
+}
+
 func (ss *StoreService) alloc(req *msg.OcReq) (*msg.OcResp, error) {
 	// TODO(ortutay): may want multiple contianers per client
-	id := util.Sha256AsString([]byte(req.ID.String()))
-	return msg.NewRespOk([]byte(id)), nil
+	id := ocIDToContainerID(req.ID)
+	return msg.NewRespOk([]byte(id.String())), nil
 }
 
 func blobToBlocksDB() string {
@@ -286,7 +304,6 @@ func storeBlob(blob *Blob) error {
 	util.Ferr(err)
 	err = d.Write(blob.ID.String(), ser)
 	util.Ferr(err)
-	fmt.Printf("storeBlob\n")
 	return nil
 }
 
@@ -296,18 +313,75 @@ func updateIndexes(cont *Container) error {
 }
 
 func (ss *StoreService) put(req *msg.OcReq) (*msg.OcResp, error) {
-	// validate node-id -> container-id
-	// see if we already have blob-id
-	// if yes, respond with ok
-	// if no:
-	//   if no block-list included, respond with block-list-request
-	//   if block-list is included:
-	//     validate max-size
-	//     validate block-list to blob-id hashes
-	//     store blocks
-	//     map blob-id to blocks
-	//     append blob-id to container-id
-	return nil, nil
+	if len(req.Args) < 1 || len(req.Args) > 2 {
+		return msg.NewRespError(msg.INVALID_ARGUMENTS), nil
+	}
+	var containerID ContainerID
+	if len(req.Args) >= 1 && req.Args[0] != "." {
+		containerID = ContainerID(req.Args[0])
+	} else {
+		containerID = ocIDToContainerID(req.ID)
+	}
+	var blobID BlobID
+	if len(req.Args) == 2 {
+		blobID = BlobID(req.Args[1])
+	}
+
+	if containerID != ocIDToContainerID(req.ID) {
+		resp := msg.NewRespErrorWithBody(msg.INVALID_ARGUMENTS,
+			[]byte("Cannot access that container"))
+		return resp, nil
+	}
+
+	fmt.Printf("put request for: %v %v\n", containerID, blobID)
+
+	// Store blob if it is new
+	blob, err := NewBlobFromDisk(blobID)
+	if blob == nil {
+		if req.Body == nil || len(req.Body) == 0 {
+			// TODO(ortutay): Neither "OK" nor "error" are appropriate status codes
+			// in this case. It may be useful to have a third error class, but not
+			// sure what to call it.
+			return msg.NewRespOk([]byte("Please re-send with data.")), nil
+		}
+		if len(req.Body) > MAX_BLOB_BYTES {
+			resp := msg.NewRespErrorWithBody(msg.CANNOT_COMPLETE_REQUEST,
+				[]byte(fmt.Sprintf("Cannot store over %v",
+					util.ByteSize(MAX_BLOB_BYTES).String())))
+			return resp, nil
+		}
+		blob, err = NewBlobFromReader(bytes.NewReader(req.Body))
+		if err != nil {
+			return msg.NewRespError(msg.SERVER_ERROR), nil
+		}
+		err := storeBlob(blob)
+		if err != nil {
+			return msg.NewRespError(msg.SERVER_ERROR), nil
+		}
+	}
+	
+	// Append blob-id to container-id
+	d := util.GetOrCreateDB(containerToBlobsDB())
+	idsSer, err := d.Read(containerID.String())
+	var ids []BlobID
+	if idsSer == nil || len(idsSer) == 0 {
+		ids = make([]BlobID, 0)
+	} else {
+		err = json.Unmarshal(idsSer, &ids)
+		util.Ferr(err)
+	}
+	for _, id := range ids {
+		if id == blob.ID {
+			return msg.NewRespOk([]byte("")), nil
+		}
+	}
+
+	ids = append(ids, blob.ID)
+	idsSer, err = json.Marshal(ids)
+	util.Ferr(err)
+	err = d.Write(blob.ID.String(), idsSer)
+	util.Ferr(err)
+	return msg.NewRespOk([]byte("")), nil
 }
 
 // func (ss *StoreService) diff(req *msg.OcReq) (*msg.OcResp, error) {
