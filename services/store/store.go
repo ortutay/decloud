@@ -184,29 +184,29 @@ func (c ContainerID) String() string {
 }
 
 type Container struct {
-	ID ContainerID
-	OwnerID msg.OcID
-	BlobIDs []BlobID
+	ID ContainerID `json:"id"`
+	OwnerID msg.OcID `json:"ownerId"`
+	BlobIDs []BlobID `json:"blobIds"`
 }
 
 func NewContainerFromDisk(id msg.OcID) *Container {
-	d := util.GetOrCreateDB(containerToBlobsDB())
+	d := util.GetOrCreateDB(containersDB())
 	containerID := ocIDToContainerID(id)
-	blobIDsSer, _ := d.Read(containerID.String())
-	var blobIDs []BlobID
-	if blobIDsSer == nil || len(blobIDsSer) == 0 {
-		blobIDs = make([]BlobID, 0)
+	ser, _ := d.Read(containerID.String())
+	if ser == nil || len(ser) == 0 {
+		return &Container{ID: containerID, OwnerID: id}
 	} else {
-		err := json.Unmarshal(blobIDsSer, &blobIDs)
+		var container Container
+		err := json.Unmarshal(ser, &container)
 		util.Ferr(err)
+		return &container
 	}
-	return &Container{ID: containerID, OwnerID: id, BlobIDs: blobIDs}
 }
 
 func (c *Container) WriteNewBlobID(id BlobID) {
-	d := util.GetOrCreateDB(containerToBlobsDB())
+	d := util.GetOrCreateDB(containersDB())
 	c.BlobIDs = append(c.BlobIDs, id)
-	blobIDsSer, err := json.Marshal(c.BlobIDs)
+	blobIDsSer, err := json.Marshal(c)
 	util.Ferr(err)
 	err = d.Write(c.ID.String(), blobIDsSer)
 	util.Ferr(err)
@@ -221,8 +221,8 @@ func (c *Container) HasBlobID(targetID BlobID) bool {
 	return false
 }
 
-func containerToBlobsDB() string {
- 	return util.ServiceDir(SERVICE_NAME) + "/container-to-blobs.db"
+func containersDB() string {
+ 	return util.ServiceDir(SERVICE_NAME) + "/containers.db"
 }
 
 type WorkPut struct {
