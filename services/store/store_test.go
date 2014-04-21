@@ -10,7 +10,7 @@ import (
 
 func TestStoreBlob(t *testing.T) {
 	defer os.RemoveAll(testutil.InitDir(t))
-	r := strings.NewReader(strings.Repeat("x", 3 * BYTES_PER_BLOCK) + "abc")
+	r := strings.NewReader(strings.Repeat("abc", 1))
 	blob, err := NewBlobFromReader(r)
 	if err != nil {
 		t.Fatal(err)

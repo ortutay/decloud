@@ -81,7 +81,7 @@ type Blob struct {
 func NewBlob(blocks []*Block) (*Blob, error) {
 	h := sha256.New()
 	for _, block := range blocks {
-		_, err := h.Write([]byte(block.ID))
+		_, err := h.Write([]byte(block.Data))
 		util.Ferr(err)
 	}
 	b := h.Sum([]byte{})
@@ -104,11 +104,10 @@ func NewBlobFromReader(r io.Reader) (*Blob, error) {
 		if err != nil {
 			return nil, err
 		}
-		block, err := NewBlock(buf)
+		block, err := NewBlock(buf[:n])
 		util.Ferr(err)
 		util.Ferr(err)
 		blocks = append(blocks, block)
-		fmt.Printf("read %v (%v)\n", string(buf), n)
 	}
 	return NewBlob(blocks)
 }
