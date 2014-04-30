@@ -183,7 +183,7 @@ func (s *Server) Serve(listener net.Listener) error {
 
 		// TODO(ortutay): more configuration options around allowed balance
 		balanceDueResp := s.checkBalance(p)
-		if balanceDueResp != nil {
+		if (balanceDueResp != nil && req.Service != "payment") {
 			balanceDueResp.Write(conn)
 			return
 		}

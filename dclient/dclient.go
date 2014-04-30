@@ -25,6 +25,7 @@ var fAddr = goopt.String([]string{"-a", "--addr"}, "", "Remote host address")
 var fAppDir = goopt.String([]string{"--app-dir"}, "~/.decloud", "")
 var fCoinsLower = goopt.String([]string{"--coins-lower"}, "0btc", "")
 var fCoinsUpper = goopt.String([]string{"--coins-upper"}, "10btc", "")
+var fVerbosity = goopt.Int([]string{"-v", "--verbosity"}, 0, "")
 
 // var fTestNet = goopt.Flag([]string{"-t", "--test-net"}, []string{"--main-net"}, "Use testnet", "Use mainnet")
 
@@ -78,7 +79,6 @@ func main() {
 		body, err = ioutil.ReadAll(os.Stdin)
 		util.Ferr(err)
 	}
-	fmt.Printf("body: %v\n", string(body))
 
 	cmdArgs := make([]string, 0)
 	for _, arg := range os.Args[1:] {
@@ -105,7 +105,7 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			fmt.Printf("%v%v\n", util.S2B(pv.Amount), pv.Currency)
+			fmt.Printf("\n%v%v\n", util.S2B(pv.Amount), pv.Currency)
 		}
 	case "call":
 		req, err = makeReq(cmdArgs[1:], body)
@@ -120,10 +120,9 @@ func main() {
 			if err != nil {
 				log.Fatalf("malformed response")
 			}
-			fmt.Printf("Server reports balance of %v%v (max allowed is %v%v), %v\n",
+			fmt.Printf("\nServer reports balance of %v%v (max allowed is %v%v)\n",
 				util.S2B(br.Balance.Amount), br.Balance.Currency,
-				util.S2B(br.MaxBalance.Amount), br.MaxBalance.Currency,
-				br.Addr)
+				util.S2B(br.MaxBalance.Amount), br.MaxBalance.Currency)
 		}
 		}
 	case "pay":
@@ -162,12 +161,14 @@ func sendRequest(c *node.Client, req *msg.OcReq) *msg.OcResp {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	fmt.Printf("sending request to %v\n%v\n\n", *fAddr, req.String())
+	if *fVerbosity > 0 {
+		fmt.Printf("sending request to %v\n%v\n\n", *fAddr, req.String())
+	}
 	resp, err := c.SendRequest(*fAddr, req)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	fmt.Printf("got response\n%v\n", resp.String())
+	fmt.Printf("%v\n", resp.String())
 	if resp.Status == msg.PLEASE_PAY {
 		var pr msg.PaymentRequest
 		err := json.Unmarshal(resp.Body, &pr)

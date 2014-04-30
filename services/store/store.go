@@ -309,7 +309,7 @@ func (ss *StoreService) PeriodicWake() {
 	if ss.lastWake == 0 {
 		ss.lastWake = now
 	}
-	period := int64(5)
+	period := int64(10)
 	if now - ss.lastWake < period {
 		return
 	}
@@ -340,7 +340,7 @@ func (ss *StoreService) PeriodicWake() {
 			}
 		}
 		costPv := costForBytesSeconds(bytesUsed, int(period))
-		fmt.Printf("bytes %v used by %v..., cost: %f %v\n",
+		fmt.Printf("bytes %v used by %v..., cost += %f %v\n",
 			bytesUsed, id.String()[:8], util.S2B(costPv.Amount), costPv.Currency)
 		rec := rep.Record{
 			Role: rep.SERVER,
