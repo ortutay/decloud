@@ -117,6 +117,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+	err = s.ListenAndServe()
+	util.Ferr(err)
 }
 
 func makeConf(minFeeFlag string, minCoinsFlag string, maxWorkFlag string) (*conf.Conf, error) {

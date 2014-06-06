@@ -12,6 +12,7 @@ import (
 	"github.com/ortutay/decloud/msg"
 	"github.com/ortutay/decloud/node"
 	"github.com/ortutay/decloud/util"
+	"github.com/ortutay/decloud/services/proxy"
 )
 
 // General flags
@@ -21,6 +22,7 @@ var fCoinsUpper = goopt.String([]string{"--coins-upper"}, "10btc", "")
 var fVerbosity = goopt.Int([]string{"-v", "--verbosity"}, 0, "")
 
 var fListen = goopt.String([]string{"-l", "--listen"}, "", "Listen address")
+var fRemote = goopt.String([]string{"-r", "--remote"}, "", "Remote address")
 
 const (
 	CONNECT_TIMEOUT  = 30 * time.Second
@@ -68,11 +70,37 @@ func echoLoop(src net.Conn, dst net.Conn, wg *sync.WaitGroup) {
 		if err != nil {
 			break
 		}
-		fmt.Printf("fwd %v [%v...]\n", n, string(buf[0:util.MinInt(n, 20)]))
+		// fmt.Printf("fwd %v [%v...]\n", n, string(buf[0:util.MinInt(n, 20)]))
 		_, err = dst.Write(buf[0:n])
 		if err != nil {
 			break
 		}
+	}
+	dst.Close()
+	wg.Done()
+}
+
+func c2sEchoLoop(c *node.Client, src net.Conn, dst net.Conn, targetPort uint16, remoteAddr2 string, wg *sync.WaitGroup) {
+	var buf [ECHO_BUF_BYTES]byte
+	for {
+		n, err := src.Read(buf[0:])
+		if err != nil {
+			break
+		}
+		// fmt.Printf("fwd %v [%v...]\n", n, string(buf[0:util.MinInt(n, 20)]))
+		req := proxy.NewProxyReq(string(buf[0:n]))
+		err = c.SignRequest(req)
+		util.Ferr(err)
+		fmt.Printf("oc req: %v\n", req)
+		
+		_, err = dst.Write(buf[0:n])
+		if err != nil {
+			break
+		}
+
+		resp, err := c.SendRequest(fmt.Sprintf("%v", remoteAddr2), req)
+		util.Ferr(err)
+		fmt.Printf("resp: %v\n", resp)
 	}
 	dst.Close()
 	wg.Done()
@@ -83,7 +111,7 @@ func sendSocksResponse(conn net.Conn, status uint8) {
 	binary.Write(conn, binary.BigEndian, &response)
 }
 
-func handleConn(client net.Conn) error {
+func handleConn(c *node.Client, client net.Conn, remoteAddr2 string) error {
 	defer client.Close()
 
 	request := Socks4ClientRequest{}
@@ -106,14 +134,14 @@ func handleConn(client net.Conn) error {
 		return fmt.Errorf("Could not connect to %v: %v", remoteAddr, err)
 	}
 	defer remote.Close()
-
 	sendSocksResponse(client, STATUS_SUCCESS)
 	fmt.Printf("connected on %v\n", remoteAddr)
 
 	var wg sync.WaitGroup
 	wg.Add(2)
 	go echoLoop(remote, client, &wg)
-	go echoLoop(client, remote, &wg)
+	// go echoLoop(client, remote, &wg)
+	go c2sEchoLoop(c, client, remote, request.Port, remoteAddr2, &wg)
 	wg.Wait()
 
 	return nil
@@ -151,6 +179,7 @@ func main() {
 	fmt.Printf("client: %v\n", c)
 
 	listenAddr := *fListen
+	remoteAddr := *fRemote
 
 	listener, err := net.Listen("tcp", listenAddr)
 	util.Ferr(err)
@@ -161,7 +190,7 @@ func main() {
 		fmt.Printf("accepted connection\n")
 		util.Ferr(err)
 		go func() {
-			err := handleConn(conn)
+			err := handleConn(&c, conn, remoteAddr)
 			util.Ferr(err)
 		}()
 	}

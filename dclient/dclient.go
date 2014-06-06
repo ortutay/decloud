@@ -233,8 +233,6 @@ func makeReq(args []string, body []byte) (*msg.OcReq, error) {
 	}
 	if body != nil {
 		req.SetBody(body)
-		req.ContentLength = len(body)
-		req.Body = body
 	}
 	return &req, nil
 }

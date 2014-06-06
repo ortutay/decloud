@@ -11,6 +11,7 @@ import (
 	"github.com/ortutay/decloud/node"
 	"github.com/ortutay/decloud/conf"
 	"github.com/ortutay/decloud/cred"
+	"github.com/ortutay/decloud/services/proxy"
 )
 
 var fPort = goopt.Int([]string{"-p", "--port"}, 9443, "")
@@ -44,6 +45,8 @@ func main() {
 	addr := fmt.Sprintf(":%v", *fPort)
 
 	services := make(map[string]node.Handler)
+	proxyService := proxy.ProxyService{Conf: config}
+	services[proxy.SERVICE_NAME] = &proxyService
 	mux := node.ServiceMux{
 		Services: services,
 	}
@@ -62,8 +65,9 @@ func main() {
 		Handler: &mux,
 		PeriodicWakers: wakers,
 	}
-
 	fmt.Printf("server: %v\n", s)
+	err = s.ListenAndServe()
+	util.Ferr(err)
 }
 
 func makeConf(minCoinsFlag string) (*conf.Conf, error) {
